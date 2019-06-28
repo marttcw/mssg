@@ -6,9 +6,10 @@
 #define HELP_MESSAGE MSSG_TITLE "\n"\
 	"Usage: " TSH " [OPTIONS] [FILES...]\n\n"\
 	"OPTIONS\n"\
-	"new\tGenerate a new static site"\
-	"help\tShow this help message\n"\
-	"config\tShow this file's configuration"
+	"new\t\tGenerate a new static site setup\n"\
+	"generate\tGenerate the static site based off the setup\n"\
+	"help\t\tShow this help message\n"\
+	"config\t\tShow this file's configuration"
 
 #endif /* MESSAGES_H */
 

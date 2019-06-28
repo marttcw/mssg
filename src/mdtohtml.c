@@ -6,14 +6,76 @@
 #include <errno.h>
 
 #include "mssg.h"
+#include "genproc.h"
 #include "messages.h"
 
 #define LINE_BUFFER (1024)
 
+char *
+gen_from_proc(char *proc_type)
+{
+	char *proc_name = NULL;
+	char *proc_arg = NULL;
+	char *token = NULL;
+
+	/* Gets the pre-processor name */
+	token = strtok(proc_type, "(");
+	proc_name = (char *) malloc(strlen(proc_type) * sizeof(char));
+	sprintf(proc_name, "%s", token);
+
+	/* Tests if the arguments are used or not */
+	token = strtok(NULL, ")");
+	if (token != NULL) {
+		proc_arg  = (char *) malloc(strlen(proc_type) * sizeof(char));
+		sprintf(proc_arg, "%s", token);
+	}
+
+	typedef struct func_m {
+		char *name;
+		char *(*f)(char *);
+		int min_args;
+	} func_m;
+
+	func_m *funcs = (func_m []) {
+		/* name,	function,	min_args */
+		{"NAV",		&gen_nav,	0},
+		{"BLOG_FRONT",	&gen_blog,	0},
+		{NULL,		NULL,		0}
+	};
+
+	func_m *fp = funcs;	// Pointer to function matcher
+
+	/* Looping and matching between name and its function */
+	for (; fp->name != NULL; ++fp) {
+		if (!strcmp(fp->name, proc_name)) {
+			return (*fp->f)(proc_arg);
+		}
+	}
+
+	if (token != NULL)	{ free(token); }
+	if (proc_name != NULL)	{ free(proc_name); }
+	if (proc_arg != NULL)	{ free(proc_arg); }
+
+	return NULL;	// Function not found
+}
+
 int
 preproc(const char *line, char *htmlline, const int inpara)
 {
-	sprintf(htmlline, "%s", (inpara) ? "</p>" : "");
+	char *proc_type = (char *) malloc(strlen(line) * sizeof(char));
+	char *gen_proc_str = NULL;
+
+	if (line[1] != '%') {
+		sprintf(htmlline, "%s", (inpara) ? "</p>" : "");
+	} else {
+		sprintf(proc_type, "%.*s", (int) (strlen(line+2)-1), line+2);
+		sprintf(htmlline, "%s%s", (inpara) ? "</p>" : "",
+				((gen_proc_str = gen_from_proc(proc_type))
+				 	== NULL) ? "" : gen_proc_str);
+	}
+
+	if (gen_proc_str != NULL)	{ free(gen_proc_str); }
+	if (proc_type != NULL)		{ free(proc_type); }
 	return 0;
 }
 
