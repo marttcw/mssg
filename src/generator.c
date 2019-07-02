@@ -10,13 +10,10 @@
 #include "mssg.h"
 #include "messages.h"
 
-/*
- * Generate the site itself
- */
 int
-generate(int argc, char **argv, int flag)
+gen_perfile_html(const char *filename, const char *genfilename)
 {
-	FILE	*fp;
+	FILE	*fp, *nf;
 	char	*line = NULL;
 	size_t	len = 0;
 	ssize_t	nread;
@@ -25,21 +22,36 @@ generate(int argc, char **argv, int flag)
 
 	// Read configuration file to get parameters
 
-	fp = fopen("index.mssf", "r");
+	fp = fopen(filename, "r");
+	nf = fopen(genfilename, "w");
 	if (fp == NULL) {
-		fprintf(stderr, "%s: error: index.mssf not found, check if"
-				" you're in the site's directory\n", TSH);
+		fprintf(stderr, "%s: error: '%s' not found, check if"
+				" you're in the site's directory\n"
+				, TSH, filename);
 		return EXIT_FAILURE;
 	}
 
-	printf("<!DOCTYPE html><html><head></head><body>\n");
+	fprintf(nf, "<!DOCTYPE html><html><head></head><body>\n");
 	while ((nread = getline(&line, &len, fp)) != -1) {
-		printf("%s", mdline_to_html(line, &inpara));
+		fprintf(nf, "%s", mdline_to_html(line, &inpara));
 	}
-	printf("</body></html>\n");
+	fprintf(nf, "</body></html>\n");
 
-	free(line);
-	fclose(fp);
+	if (line != NULL)	{ free(line); }
+	if (nf != NULL)		{ fclose(nf); }
+	if (fp != NULL)		{ fclose(fp); }
+
+	return EXIT_SUCCESS;
+}
+
+/*
+ * Generate the site itself
+ */
+int
+generate(int argc, char **argv, int flag)
+{
+	gen_perfile_html("index.mssf", "site/index.html");
+
 	return EXIT_SUCCESS;
 }
 
