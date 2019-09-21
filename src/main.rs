@@ -10,13 +10,14 @@ fn main() {
         _ => {
             match &*args[1] {
                 "help" => core::msg::help(),
+                "ver"  => core::msg::version(),
                 "init" => {
                     match args.len() {
-                        2 => core::new::init(""),
-                        _ => core::new::init(&*args[2]),
+                        2 => core::new::init("").unwrap(),
+                        _ => core::new::init(&*args[2]).unwrap(),
                     }
                 }
-                "gen" => core::msg::err_handle("Not supported yet", true),
+                "gen" => core::gen::gen().unwrap(),
                 _ => core::msg::err_handle("Non-valid argument!", true),
             }
         }
