@@ -23,10 +23,7 @@ fn markdown(in_filename: &str, out_filename: &str) -> std::io::Result<()> {
     let mut html_output = String::new();
 
     // Open file and read it to string
-    let in_file = fs::File::open(in_filename)?;
-    let mut buf_reader = BufReader::new(in_file);
-    let mut contents = String::new();
-    buf_reader.read_to_string(&mut contents)?;
+    let contents = fs::read_to_string(in_filename).expect("Unable to read file");
 
     // Parse the markdown contents to HTML
     let mut options = Options::empty();
