@@ -1,4 +1,5 @@
 use yansi::Paint;
+use std::panic::set_hook;
 
 mod core;
 
@@ -13,7 +14,7 @@ fn main() {
     let matches = clap_app!(mssg =>
         (version: crate_version!())
         (author: crate_authors!())
-        (about: "Mart's Static Site Generator written in Rust (v2018)")
+        (about: crate_description!())
         (@subcommand init =>
             (about: "Initialize a new site project")
             (@arg PROJ_NAME: "Name of the project")
@@ -32,11 +33,36 @@ fn main() {
 
     if let Some(matches) = matches.subcommand_matches("init") {
         match matches.is_present("PROJ_NAME") {
-            true => core::new::init(matches.value_of("PROJ_NAME").unwrap()).unwrap(),
-            false => core::new::init("").unwrap(),
+            true => {
+                ::std::process::exit(match core::new::init(matches.value_of("PROJ_NAME").unwrap()) {
+                    Ok(_) => 0,
+                    Err(err) => {
+                        eprintln!("{}: Could not initialize: Project \"{}\" already exists.\n\t{}: {:?}"
+                            , Paint::red("ERROR").bold(), matches.value_of("PROJ_NAME").unwrap(), Paint::red("ERROR DESCRIPTION").bold(), err);
+                        1
+                    }
+                });
+            }
+            false => {
+                ::std::process::exit(match core::new::init("") {
+                    Ok(_) => 0,
+                    Err(err) => {
+                        eprintln!("{}: Could not initialize: Project already exists.\n\t{}: {:?}"
+                            , Paint::red("ERROR").bold(), Paint::red("ERROR DESCRIPTION").bold(), err);
+                        1
+                    }
+                });
+            }
         }
     } else if let Some(_matches) = matches.subcommand_matches("gen") {
-        core::gen::gen().unwrap();
+        ::std::process::exit(match core::gen::gen() {
+            Ok(_) => 0,
+            Err(err) => {
+                eprintln!("{}: Could not generate!!!\n\t{}: {:?}"
+                    , Paint::red("ERROR").bold(), Paint::red("ERROR DESCRIPTION").bold(), err);
+                1
+            }
+        });
     } else if let Some(_matches) = matches.subcommand_matches("blog") {
         /*
             "post" => err_handle("Not supported at the moment", false),

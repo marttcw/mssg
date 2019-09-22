@@ -4,6 +4,7 @@ use pulldown_cmark::{Parser, Options, html};
 use toml::Value;
 use serde::Deserialize;
 
+// Local deserialization structs
 #[derive(Deserialize)]
 struct Config {
     title: String,
@@ -17,6 +18,7 @@ struct Global_Config {
     order: Vec<String>
 }
 
+// Local structs
 struct path_file {
     rel_path: String,
     filename: String
