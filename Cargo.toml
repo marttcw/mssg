@@ -22,5 +22,14 @@ lto = false
 yansi = "0.5.0"             # Colors
 pulldown-cmark = "0.6.0"    # CommonMark (a version of markdown)
 toml = "0.5"                # Toml
-image = "0.22.2"            # Thumbnail
 clap = "~2.33"              # CLI argument parsing
+walkdir = "2"
+
+[dependencies.image]        # Thumbnail
+version = "0.22.2"
+default-features = false
+features = ["jpeg_rayon", "jpeg", "png_codec", "gif_codec"]
+
+[dependencies.serde]
+version = "1.0"
+features = ["derive"]
