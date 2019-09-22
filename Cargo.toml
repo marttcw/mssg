@@ -23,3 +23,4 @@ yansi = "0.5.0"             # Colors
 pulldown-cmark = "0.6.0"    # CommonMark (a version of markdown)
 toml = "0.5"                # Toml
 image = "0.22.2"            # Thumbnail
+clap = "~2.33"              # CLI argument parsing

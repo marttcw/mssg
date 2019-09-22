@@ -10,10 +10,11 @@ Mart's Static Site Generator written in Rust (v2018)
 
 ### Dependencies used:
 ```
-yansi = "0.5.0"
-pulldown-cmark = "0.6.0"
-toml = "0.5"
-image = "0.22.2"
+yansi = "0.5.0"             # Colors
+pulldown-cmark = "0.6.0"    # CommonMark (a version of markdown)
+toml = "0.5"                # Toml
+image = "0.22.2"            # Thumbnail
+clap = "~2.33"              # CLI argument parsing
 ```
 
 ## TODO
@@ -21,6 +22,10 @@ image = "0.22.2"
 * toml for configuration (toml)
 * Templating
 * Static blogging feature
+  * `blog post` - Create a new blog post
+  * `blog edit 20190921_01` - Edit a blog post
+  * `blog list` - List your posts
+  * `blog delete 20190921_01` - Delete a blog post
 * Translated page version
 * Gallery feature
   * Thumbnail generator (image)
