@@ -1,13 +1,27 @@
 use yansi::Paint;
-use std::panic::set_hook;
 
 mod core;
 
 #[macro_use]
 extern crate clap;
 
-pub fn err_handle(msg: &'static str) {
-    eprintln!("{}: {}", Paint::red("ERROR").bold(), msg);
+macro_rules! notsupported_message {
+    () => {
+        eprintln!("{}: Not supported at the moment.", Paint::red("ERROR").bold());
+    }
+}
+
+macro_rules! exit_message {
+    ($func:expr, $msg_couldnot:expr, $msg_description:expr) => {
+         ::std::process::exit(match $func {
+            Ok(_) => 0,
+            Err(err) => {
+                eprintln!("{}: Could not {}: {}\n\t{}: {:?}"
+                    , Paint::red("ERROR").bold(), $msg_couldnot, $msg_description, Paint::red("ERROR DESCRIPTION").bold(), err);
+                1
+            }
+        });       
+    }
 }
 
 fn main() {
@@ -31,44 +45,23 @@ fn main() {
         (@setting ArgRequiredElseHelp)
     ).get_matches();
 
-    if let Some(matches) = matches.subcommand_matches("init") {
-        match matches.is_present("PROJ_NAME") {
-            true => {
-                ::std::process::exit(match core::new::init(matches.value_of("PROJ_NAME").unwrap()) {
-                    Ok(_) => 0,
-                    Err(err) => {
-                        eprintln!("{}: Could not initialize: Project \"{}\" already exists.\n\t{}: {:?}"
-                            , Paint::red("ERROR").bold(), matches.value_of("PROJ_NAME").unwrap(), Paint::red("ERROR DESCRIPTION").bold(), err);
-                        1
-                    }
-                });
+    match matches.subcommand_name() {
+        Some("init") => {
+            match matches.is_present("PROJ_NAME") {
+                true => {
+                    let proj_name = matches.value_of("PROJ_NAME").unwrap();
+                    exit_message!(core::new::init(proj_name), "initialize", format!("Project \"{}\" already exists.", proj_name));
+                }
+                false => exit_message!(core::new::init(""), "initialize", "Project already exists."),
             }
-            false => {
-                ::std::process::exit(match core::new::init("") {
-                    Ok(_) => 0,
-                    Err(err) => {
-                        eprintln!("{}: Could not initialize: Project already exists.\n\t{}: {:?}"
-                            , Paint::red("ERROR").bold(), Paint::red("ERROR DESCRIPTION").bold(), err);
-                        1
-                    }
-                });
-            }
+        } 
+        Some("gen") => exit_message!(core::gen::gen(), "generate", "See follow error description."),
+        Some("blog") => {
+            notsupported_message!();
+            // post, edit, list, delete
         }
-    } else if let Some(_matches) = matches.subcommand_matches("gen") {
-        ::std::process::exit(match core::gen::gen() {
-            Ok(_) => 0,
-            Err(err) => {
-                eprintln!("{}: Could not generate!!!\n\t{}: {:?}"
-                    , Paint::red("ERROR").bold(), Paint::red("ERROR DESCRIPTION").bold(), err);
-                1
-            }
-        });
-    } else if let Some(_matches) = matches.subcommand_matches("blog") {
-        /*
-            "post" => err_handle("Not supported at the moment", false),
-            "edit" => err_handle("Not supported at the moment", false),
-            "list" => err_handle("Not supported at the moment", false),
-            "delete" => err_handle("Not supported at the moment", false),
-        */
+        Some("host") => notsupported_message!(),
+        None => notsupported_message!(),
+        _ => notsupported_message!(),
     }
 }
