@@ -3,6 +3,10 @@ name = "mssg"
 version = "0.0.1"
 authors = ["martin <mtcw@disroot.org>"]
 edition = "2018"
+repository = "https://github.com/marttcw/mssg"
+readme = "README.md"
+license = "MIT"
+description = "Mart's Static Site Generator written in Rust (v2018)"
 
 [profile.release]
 opt-level = 3
