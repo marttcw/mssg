@@ -54,6 +54,10 @@ fn is_not_hidden(entry: &DirEntry) -> bool {
          .unwrap_or(false)
 }
 
+fn is_directory(entry: &DirEntry) -> bool {
+    return entry.file_type().is_dir();
+}
+
 fn get_list_files(list: &mut Vec<path_file>, base_dir_path: &str) -> Result<(), Box<dyn Error>> {
     WalkDir::new(base_dir_path)
         .into_iter()
@@ -66,6 +70,26 @@ fn get_list_files(list: &mut Vec<path_file>, base_dir_path: &str) -> Result<(), 
                     filename: x.path().file_name().unwrap().to_os_string().into_string().unwrap()
                 }));
 
+    Ok(())
+}
+
+fn nav_generator(html_output: &mut String, base_dir_path: &str) -> std::io::Result<()> {
+    html_output.push_str("<nav>");
+
+    let mut fname: String;
+    let mut fpath: String;
+    let paths = fs::read_dir(base_dir_path).unwrap();
+
+    for path in paths {
+        let pa = path.unwrap();
+        fpath = pa.path().display().to_string();
+        fname = pa.path().file_name().unwrap().to_os_string().into_string().unwrap();
+        if fpath != base_dir_path && pa.path().is_dir() {
+            html_output.push_str(format!("<a href=\"/{}\">{}</a>", &*fname, &*fname).as_str());
+        }
+    }
+
+    html_output.push_str("</nav>");
     Ok(())
 }
 
@@ -86,12 +110,13 @@ fn markdown(in_filename: &str, in_config: &str, out_filename: &str) -> std::io::
     // Parse the configuration file from TOML
     let config: Config = toml::from_str(&*config_contents).unwrap();
 
-    let start_html = format!("<!DOCTYPE html><html lang=\"{}\"><head><title>{}</title></head><body>", config.language, config.title);
-    let end_html = "</body></html>";
+    let mut nav_output = String::new();
+    nav_generator(&mut nav_output, "src")?;
 
-    let mut full_html_output = start_html;
+    let mut full_html_output = format!("<!DOCTYPE html><html lang=\"{}\"><head><title>{}</title></head><body>", config.language, config.title);
+    full_html_output.push_str(&*nav_output);
     full_html_output.push_str(&*html_output);
-    full_html_output.push_str(end_html);
+    full_html_output.push_str("</body></html>");
 
     // Write html_output to file
     fs::write(out_filename, full_html_output).expect("Unable to write file");
