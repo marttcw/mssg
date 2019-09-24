@@ -15,7 +15,8 @@ struct Config {
 
 #[derive(Deserialize)]
 struct Global_Config {
-    order: Vec<String>
+    order: Vec<String>,
+    css: Option<String>,
 }
 
 // Local structs
@@ -110,10 +111,24 @@ fn markdown(in_filename: &str, in_config: &str, out_filename: &str) -> std::io::
     // Parse the configuration file from TOML
     let config: Config = toml::from_str(&*config_contents).unwrap();
 
+    // Navigation output
     let mut nav_output = String::new();
     nav_generator(&mut nav_output, "src")?;
 
-    let mut full_html_output = format!("<!DOCTYPE html><html lang=\"{}\"><head><title>{}</title></head><body>", config.language, config.title);
+    let mut full_html_output = format!("<!DOCTYPE html><html lang=\"{}\"><head><meta charset=\"utf-8\"><title>{}</title>\
+        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+        , config.language, config.title);
+
+    // Check if it exists and if so push it to html
+    match config.global.css {
+        Some(css) => {
+            full_html_output.push_str(format!("<link rel=\"stylesheet\" type=\"text/css\" href=\"/{}\">", css.as_str()).as_str());
+            fs::copy(format!("src/{}", css), format!("build/{}", css))?;
+        }
+        None => (),
+    }
+
+    full_html_output.push_str("</head><body>");
     full_html_output.push_str(&*nav_output);
     full_html_output.push_str(&*html_output);
     full_html_output.push_str("</body></html>");

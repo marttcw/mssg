@@ -60,7 +60,7 @@ fn main() {
             notsupported_message!();
             // post, edit, list, delete
         }
-        Some("host") => notsupported_message!(),
+        Some("host") => exit_message!(core::host::run(), "host", "Cannot host site."),
         None => notsupported_message!(),
         _ => notsupported_message!(),
     }

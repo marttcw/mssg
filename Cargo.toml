@@ -27,7 +27,11 @@ yansi = "0.5.0"             # Colors
 pulldown-cmark = "0.6.0"    # CommonMark (a version of markdown)
 toml = "0.5"                # Toml
 clap = "~2.33"              # CLI argument parsing
-walkdir = "2"
+walkdir = "2"               # Multiplatform directory walking
+actix-web = "1.0"           # Web server
+actix-files = "0.1.4"       # Static
+futures = "0.1"
+env_logger = "0.7"
 
 [dependencies.image]        # Thumbnail
 version = "0.22.2"
