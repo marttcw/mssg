@@ -2,10 +2,22 @@
 #define STATES_H
 
 enum e_states{ COPY, DET_SPEC, SPEC, AFT_SPEC };
+enum e_states_spec{ IN, OUT };
 
-int state_copy(enum e_states *state, const char *c);
-int state_det_spec(enum e_states *state, const char *c);
-int state_spec(enum e_states *state, const char *c);
-int state_aft_spec(enum e_states *state, const char *c);
+typedef struct {
+	enum e_states current_state;
+	enum e_states_spec spec_state;
+	char **keywords_list;
+	unsigned int keyword_i;
+	unsigned int kci;
+	char prev;
+	short in_spec_char;
+} state;
+
+// Initialise/destroyer
+int state_init(state *s);
+int state_destroy(state *s);
+
+int state_determine_state(state *s, const char *c);
 
 #endif /* STATES_H */

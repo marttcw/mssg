@@ -33,7 +33,8 @@ readfile(const char *filepath)
 {
 	FILE *fp = NULL;
 	char c = '\0';
-	enum e_states state = COPY;
+	state s;
+	state_init(&s);
 
 	// -1: File not found/read error
 	if ((fp = fopen(filepath, "r")) == NULL) {
@@ -48,29 +49,19 @@ readfile(const char *filepath)
 			break;
 		}
 
-		switch (state) {
-		case COPY:
-			state_copy(&state, &c);
-			break;
-		case SPEC:
-			state_spec(&state, &c);
-			break;
-		case DET_SPEC:
-			state_det_spec(&state, &c);
-			break;
-		case AFT_SPEC:
-			state_aft_spec(&state, &c);
-			break;
-		default:
-			fprintf(stderr, "State error\n");
+		if (state_determine_state(&s, &c) < 0) {
 			fclose(fp);
+			state_destroy(&s);
 			return -2;
 		}
+
 	}
 	putchar('\n');
 
 	// Close file
 	fclose(fp);
+
+	state_destroy(&s);
 
 	return 0;
 }
