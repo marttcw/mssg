@@ -11,6 +11,7 @@ src_inc = include_directories('./src/')
 src = [
     './src/main.c'
   , './src/states.c'
+  , './src/template.c'
 ]
 
 executable('mssg'
