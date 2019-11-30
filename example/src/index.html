@@ -1,7 +1,13 @@
-<h1>Test</h1>
+{% string title "Test page" %}
+{% string yes "First test" %}
+{% string no "Second test" %}
+{% base template/base.html %}
+<h1>{{ title }}</h1>
 <p>
-{ something else %% }
-{% content "sneed \\and\\ \"feed n\"" %}
 This is the index page.
+<b>{{ yes }}</b>
+<br>
+{{ no }}
 </p>
+<h3>{{ yes }}</h3>
 
