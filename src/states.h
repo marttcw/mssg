@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-enum e_states{ COPY, DET_SPEC, SPEC, VAR, AFT_SPEC };
+enum e_states{ STATE_NONE, COPY, DET_SPEC, SPEC, VAR, AFT_SPEC };
 enum e_states_spec{ IN, OUT };
 enum e_var_type{ NONE, INT, STR, CONTENT };
 
@@ -14,10 +14,14 @@ typedef struct {
 } var_info;
 
 typedef struct {
-	// States
 	enum e_states current_state;
 	enum e_states_spec spec_state;
 	enum e_states previous_state;
+} states_collection;
+
+typedef struct {
+	// States Collection List
+	states_collection *scl;
 
 	// Copy
 	char *line;
@@ -52,7 +56,8 @@ int state_init(state *s);
 int state_destroy(state *s);
 
 int state_determine_state(state *s, const char *c);
-int state_set_level_file(state *s, const char **filepath);
-int state_set_output_file(state *s, const char **filepath);
+int state_set_level_file(state *s, const char *filepath);
+int state_set_output_file(state *s, const char *filepath);
+int state_start_generate(state *s);
 
 #endif /* STATES_H */

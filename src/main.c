@@ -31,37 +31,14 @@ print_version(void)
 int
 readfile(const char *filepath)
 {
-	FILE *fp = NULL;
-	char c = '\0';
 	state s;
+
 	state_init(&s);
-
-	// -1: File not found/read error
-	if ((fp = fopen(filepath, "r")) == NULL) {
-		fprintf(stderr, "Error occured, cannot read file: '%s'\n", filepath);
-		return -1;
-	}
-
-	// Read the file
-	while (!feof(fp)) {
-		c = fgetc(fp);
-		if (c == -1) {
-			break;
-		}
-
-		if (state_determine_state(&s, &c) < 0) {
-			fclose(fp);
-			state_destroy(&s);
-			return -2;
-		}
-
-	}
-	putchar('\n');
-
-	// Close file
-	fclose(fp);
-
+	state_set_level_file(&s, filepath);
+	state_start_generate(&s);
 	state_destroy(&s);
+
+	putchar('\n');
 
 	return 0;
 }
