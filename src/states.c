@@ -35,7 +35,7 @@ reset_keywords_list(state *s)
 	s->keyword_i = 0;
 	s->kci = 0;
 	s->prev = '%';
-	s->spec_state = OUT;
+	s->scl[s->fp_l_level].spec_state = OUT;
 }
 
 void
@@ -106,8 +106,12 @@ template_variable(state *s)
 int
 state_init(state *s)
 {
-	s->current_state = COPY;
-	s->spec_state = OUT;
+	s->scl = (states_collection *) malloc(ALLOC_SIZE * sizeof(states_collection));
+	for (int i=0; i < ALLOC_SIZE; ++i) {
+		s->scl[i].current_state = COPY;
+		s->scl[i].spec_state = OUT;
+		s->scl[i].previous_state = NONE;
+	}
 	s->keywords_list = (char **) calloc(ALLOC_SIZE, sizeof(char *));
 	for (int i=0; i < ALLOC_SIZE; ++i) {
 		s->keywords_list[i] = (char *) calloc(ALLOC_SIZE_SUB, sizeof(char));
@@ -127,8 +131,8 @@ state_init(state *s)
 	s->li_max = ALLOC_SIZE_LINE;
 	s->line = (char *) calloc(s->li_max, sizeof(char));
 	s->li = 0;
-	s->fp_l = (FILE **) malloc(16 * (sizeof(FILE *)));
-	s->fp_l_level = 0;
+	s->fp_l = (FILE **) malloc(ALLOC_SIZE * (sizeof(FILE *)));
+	s->fp_l_level = -1;
 	s->fp_o = NULL;
 
 	return 0;
@@ -157,6 +161,7 @@ state_destroy(state *s)
 		free(s->keywords_list[i]);
 	}
 	free(s->keywords_list);
+	free(s->scl);
 
 	return 0;
 }
@@ -190,7 +195,7 @@ state_copy(state *s, const char *c)
 
 		// Scope out of copy
 		if (*c == '{') {
-			s->current_state = DET_SPEC;
+			s->scl[s->fp_l_level].current_state = DET_SPEC;
 		}
 		break;
 	default:
@@ -217,13 +222,13 @@ state_det_spec(state *s, const char *c)
 {
 	switch (*c) {
 	case '%':
-		s->current_state = SPEC;
+		s->scl[s->fp_l_level].current_state = SPEC;
 		break;
 	case '{':
-		s->current_state = VAR;
+		s->scl[s->fp_l_level].current_state = VAR;
 		break;
 	default:
-		s->current_state = COPY;
+		s->scl[s->fp_l_level].current_state = COPY;
 		printf("{%c", *c);
 	}
 
@@ -251,7 +256,7 @@ state_spec_in(state *s, const char *c)
 	case '"':
 		if (!s->in_spec_char) {
 			// Move to OUT state and set prev 
-			s->spec_state = OUT;
+			s->scl[s->fp_l_level].spec_state = OUT;
 			s->prev = *c;
 			break;
 		}
@@ -278,7 +283,7 @@ state_spec_out(state *s, const char *c)
 	switch (*c) {
 	case '"':
 		// Move to IN state and set special char default
-		s->spec_state = IN;
+		s->scl[s->fp_l_level].spec_state = IN;
 		s->in_spec_char = 0;
 		break;
 	case ' ':
@@ -290,8 +295,8 @@ state_spec_out(state *s, const char *c)
 		}
 		break;
 	case '%':
-		s->previous_state = SPEC;
-		s->current_state = AFT_SPEC;
+		s->scl[s->fp_l_level].previous_state = SPEC;
+		s->scl[s->fp_l_level].current_state = AFT_SPEC;
 		break;
 	default:
 		s->keywords_list[s->keyword_i][s->kci++] = *c;
@@ -311,7 +316,7 @@ state_spec_out(state *s, const char *c)
 int
 state_spec(state *s, const char *c)
 {
-	switch (s->spec_state) {
+	switch (s->scl[s->fp_l_level].spec_state) {
 	case IN:	state_spec_in(s, c);	break;
 	case OUT:	state_spec_out(s, c);	break;
 	}
@@ -333,8 +338,8 @@ state_var(state *s, const char *c)
 	case ' ':
 		break;
 	case '}':
-		s->previous_state = VAR;
-		s->current_state = AFT_SPEC;
+		s->scl[s->fp_l_level].previous_state = VAR;
+		s->scl[s->fp_l_level].current_state = AFT_SPEC;
 		break;
 	default:
 		s->variable[s->var_i++] = *c;
@@ -354,7 +359,7 @@ state_aft_spec(state *s, const char *c)
 {
 	switch (*c) {
 	case '}':
-		switch (s->previous_state) {
+		switch (s->scl[s->fp_l_level].previous_state) {
 		case SPEC:
 			s->keywords_list[s->keyword_i][s->kci] = '\0';
 			template_keywords_list(s);
@@ -374,10 +379,10 @@ state_aft_spec(state *s, const char *c)
 			fprintf(stderr, "Error: State: AFT: Previous state not SPEC or VAR.\n");
 			break;
 		}
-		s->current_state = COPY;
+		s->scl[s->fp_l_level].current_state = COPY;
 		break;
 	default:
-		s->current_state = SPEC;
+		s->scl[s->fp_l_level].current_state = SPEC;
 	}
 
 	return 0;
@@ -386,7 +391,7 @@ state_aft_spec(state *s, const char *c)
 int
 state_determine_state(state *s, const char *c)
 {
-	switch (s->current_state) {
+	switch (s->scl[s->fp_l_level].current_state) {
 	case COPY:	state_copy(s, c); 	break;
 	case SPEC:	state_spec(s, c); 	break;
 	case DET_SPEC:	state_det_spec(s, c);	break;
@@ -401,33 +406,50 @@ state_determine_state(state *s, const char *c)
 }
 
 int
-state_set_level_file(state *s, const char **filepath)
+state_set_level_file(state *s, const char *filepath)
 {
 	// -1: File not found/read error
-	if ((s->fp_l[s->fp_l_level] = fopen(*filepath, "r")) == NULL) {
-		fprintf(stderr, "Error occured, cannot read file: '%s'\n", *filepath);
+	if ((s->fp_l[(s->fp_l_level + 1)] = fopen(filepath, "r")) == NULL) {
+		fprintf(stderr, "Error occured, cannot read file: '%s'\n", filepath);
 		return -1;
 	}
+
 	++s->fp_l_level;
 
 	return 0;
 }
 
 int
-state_set_output_file(state *s, const char **filepath)
+state_set_output_file(state *s, const char *filepath)
 {
 	// -1: File not found/read error
-	if ((s->fp_o = fopen(*filepath, "w")) == NULL) {
-		fprintf(stderr, "Error occured, cannot set output file: '%s'\n", *filepath);
+	if ((s->fp_o = fopen(filepath, "w")) == NULL) {
+		fprintf(stderr, "Error occured, cannot set output file: '%s'\n", filepath);
 		return -1;
 	}
 	return 0;
 }
 
-// TODO
 int
 state_start_generate(state *s)
 {
+	char c = '\0';
+
+	// Read the file
+	while (!feof(s->fp_l[s->fp_l_level])) {
+		c = fgetc(s->fp_l[s->fp_l_level]);
+		if (c == -1) {
+			break;
+		}
+
+		if (state_determine_state(s, &c) < 0) {
+			fclose(s->fp_l[s->fp_l_level]);
+			state_destroy(s);
+			return -2;
+		}
+
+	}
+
 	return 0;
 }
 

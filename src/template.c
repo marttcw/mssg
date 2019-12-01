@@ -1,4 +1,5 @@
 #include "template.h"
+#include "states.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -14,11 +15,16 @@ template_base(state *s, int argc, char **argv, int flag)
 		return -1;
 	}
 
-	char *base_filepath = argv[1];
-
 	// TODO
-
-	base_filepath = NULL;
+	//
+	// Different data type?
+	// Make sure file return back to base file
+	// EX:
+	// 	index.html read
+	// 	template read
+	// 	index.html cont-read
+	// 	template cont-read
+	state_set_level_file(s, argv[1]);
 
 	return 0;
 }
