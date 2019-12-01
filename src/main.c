@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "states.h"
+#include "files.h"
 
 #define VERSION "v0.0.1"
 #define DEV_BUILD
@@ -29,32 +31,32 @@ print_version(void)
 }
 
 int
-readfile(const char *filepath)
-{
-	state s;
-
-	state_init(&s);
-	state_set_level_file(&s, filepath);
-	state_generate(&s);
-	state_destroy(&s);
-
-	putchar('\n');
-
-	return 0;
-}
-
-int
 main(int argc, char **argv)
 {
+	int ret = EXIT_SUCCESS;
+	char cwd[256];
+
+	files *f = files_init();
+
 	if (argc > 1) {
-		if (readfile(argv[1]) < 0) {
-			return EXIT_FAILURE;
+		if (!strcmp(argv[1], "build")) {
+			if (getcwd(cwd, sizeof(cwd)) == NULL) {
+				perror("getcwd() error");
+				ret = EXIT_FAILURE;
+			}
+
+			if (ret != EXIT_FAILURE && files_traverse(f, cwd) < 0) {
+				ret = EXIT_FAILURE;
+			}
+		} else if (files_read(argv[1]) < 0) {
+			ret = EXIT_FAILURE;
 		}
 	} else {
 		fprintf(stderr, "A parameter must be given.\n");
 		print_help();
 	}
 
-	return EXIT_SUCCESS;
+	files_destroy(f);
+	return ret;
 }
 
