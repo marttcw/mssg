@@ -49,17 +49,7 @@ template_sub_content(state *s, int argc, char **argv, int flag)
 	(void)(argc);
 	(void)(argv);
 
-	// TODO
-	//
-	// Different data type?
-	// Make sure file return back to base file
-	// EX:
-	// 	index.html read
-	// 	template read
-	// 	index.html cont-read
-	// 	template cont-read
 	state_level_up(s);
-	printf("LEVEL GO UP\n");
 	
 	return 0;
 }

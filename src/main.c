@@ -35,7 +35,7 @@ readfile(const char *filepath)
 
 	state_init(&s);
 	state_set_level_file(&s, filepath);
-	state_start_generate(&s);
+	state_generate(&s);
 	state_destroy(&s);
 
 	putchar('\n');

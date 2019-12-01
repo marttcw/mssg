@@ -61,7 +61,7 @@ int state_determine_state(state *s, const char *c);
 int state_set_level_file(state *s, const char *filepath);
 int state_set_bef_level_file(state *s, const char *filepath);
 int state_set_output_file(state *s, const char *filepath);
-int state_start_generate(state *s);
+int state_generate(state *s);
 int state_level_up(state *s);
 int state_level_down(state *s);
 
