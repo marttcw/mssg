@@ -12,6 +12,7 @@ src = [
     './src/main.c'
   , './src/states.c'
   , './src/template.c'
+  , './src/files.c'
 ]
 
 executable('mssg'
