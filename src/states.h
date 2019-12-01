@@ -20,9 +20,11 @@ typedef struct {
 } states_collection;
 
 typedef struct {
-	// States Collection List
-	states_collection *scl;
+	states_collection sc;
+	FILE *fp;
+} fp_sc;
 
+typedef struct {
 	// Copy
 	char *line;
 	unsigned int li;
@@ -43,9 +45,9 @@ typedef struct {
 	var_info *variables_list;
 	unsigned int var_l_m;
 
-	// Input Files list
-	FILE **fp_l;
-	unsigned int fp_l_level;
+	fp_sc *fpsc_l;
+	int fp_l_level;
+	int fp_l_level_max;
 
 	// Output file
 	FILE *fp_o;
@@ -57,7 +59,10 @@ int state_destroy(state *s);
 
 int state_determine_state(state *s, const char *c);
 int state_set_level_file(state *s, const char *filepath);
+int state_set_bef_level_file(state *s, const char *filepath);
 int state_set_output_file(state *s, const char *filepath);
 int state_start_generate(state *s);
+int state_level_up(state *s);
+int state_level_down(state *s);
 
 #endif /* STATES_H */
