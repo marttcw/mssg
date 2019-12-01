@@ -10,7 +10,7 @@
 #define ALLOC_SIZE_LINE (1024)
 #define ALLOC_SIZE_FILE (16)
 
-#define DEBUG
+//#define DEBUG
 
 // states
 int state_copy(state *s, const char *c);
@@ -48,10 +48,14 @@ print_keywords_list(state *s)
 	putchar('\n');
 }
 
-// TODO
+/* Special templates handling
+ * EX: {% example options %}
+ */
 int
 template_keywords_list(state *s)
 {
+	++s->keyword_i;
+
 	// Discard last item if last item is empty
 	if (s->keywords_list[s->keyword_i][0] == '\0') {
 		--s->keyword_i;
@@ -79,12 +83,15 @@ template_keywords_list(state *s)
 					s->keywords_list, ptr->flag);
 		}
 	}
+
 	// No arguments found
 	fprintf(stderr, "Error: Template: No arguments found\n");
 	return -3;
 }
 
-// TODO
+/* Variables templates handling
+ * EX: {{ example }}
+ */
 int
 template_variable(state *s)
 {
@@ -455,7 +462,7 @@ state_level_up(state *s)
 	if (s->fp_l_level == s->fp_l_level_max) {
 		return -1;
 	}
-	++s->fp_l_level;
+	s->fpsc_l[++s->fp_l_level].sc.current_state = COPY;
 	return 0;
 }
 
@@ -466,7 +473,7 @@ state_level_down(state *s)
 	if (s->fp_l_level == 0) {
 		return -1;
 	}
-	--s->fp_l_level;
+	s->fpsc_l[--s->fp_l_level].sc.current_state = COPY;
 	return 0;
 }
 
@@ -482,7 +489,7 @@ state_set_output_file(state *s, const char *filepath)
 }
 
 int
-state_start_generate(state *s)
+state_generate(state *s)
 {
 	char c = '\0';
 
@@ -496,7 +503,6 @@ state_start_generate(state *s)
 
 			if (state_determine_state(s, &c) < 0) {
 				fclose(s->fpsc_l[s->fp_l_level].fp);
-				//state_destroy(s);
 				return -2;
 			}
 
