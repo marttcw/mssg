@@ -15,16 +15,8 @@ template_base(state *s, int argc, char **argv, int flag)
 		return -1;
 	}
 
-	// TODO
-	//
-	// Different data type?
-	// Make sure file return back to base file
-	// EX:
-	// 	index.html read
-	// 	template read
-	// 	index.html cont-read
-	// 	template cont-read
-	state_set_level_file(s, argv[1]);
+	state_set_bef_level_file(s, argv[1]);
+	state_level_down(s);
 
 	return 0;
 }
@@ -53,11 +45,22 @@ int
 template_sub_content(state *s, int argc, char **argv, int flag)
 {
 	// Unused variables
-	(void)(s);
+	(void)(flag);
 	(void)(argc);
 	(void)(argv);
-	(void)(flag);
 
+	// TODO
+	//
+	// Different data type?
+	// Make sure file return back to base file
+	// EX:
+	// 	index.html read
+	// 	template read
+	// 	index.html cont-read
+	// 	template cont-read
+	state_level_up(s);
+	printf("LEVEL GO UP\n");
+	
 	return 0;
 }
 
