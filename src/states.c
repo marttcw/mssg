@@ -66,10 +66,11 @@ template_keywords_list(state *s)
 #endif
 
 	func_matcher *funcs = (func_matcher []) {
-		/* 1st param,		function,		flag */
-		{"base", 		&template_base, 	-1},
-		{"string", 		&template_string, 	-1},
-		{"SUB_CONTENT", 	&template_sub_content, 	-1},
+		/* 1st param,		function,		flag	// Example */
+		{"base", 		&template_base, 	-1},	// {% base src/dir/foo.html %}
+		{"string", 		&template_string, 	-1},	// {% string foo "hello world" %}
+		{"SUB_CONTENT", 	&template_sub_content, 	-1},	// {% SUB_CONTENT %}
+		{"content",		&template_content,	-1},	// {% content src/dir/foo.html %}
 		{NULL, 			NULL,			-2}
 	};
 
