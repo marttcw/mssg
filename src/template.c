@@ -54,3 +54,20 @@ template_sub_content(state *s, int argc, char **argv, int flag)
 	return 0;
 }
 
+int
+template_content(state *s, int argc, char **argv, int flag)
+{
+	// Unused variables
+	(void)(flag);
+
+	if (argc <= 1) {
+		fprintf(stderr, "Error: Template: base - need 2 arguments: base {filepath}");
+		return -1;
+	}
+
+	state_set_level_file(s, argv[1]);
+	state_level_up(s);
+
+	return 0;
+}
+
