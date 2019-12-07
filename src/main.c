@@ -48,6 +48,16 @@ main(int argc, char **argv)
 			if (ret != EXIT_FAILURE && files_traverse(f, cwd) < 0) {
 				ret = EXIT_FAILURE;
 			}
+		} else if (!strcmp(argv[1], "init")) {
+			if (argc <= 2) {
+				ret = init_site("");
+			} else {
+				ret = init_site(argv[2]);
+			}
+		} else if (!strcmp(argv[1], "help")) {
+			print_help();
+		} else if (!strcmp(argv[1], "version")) {
+			print_version();
 		} else {
 			fprintf(stderr, "Paramter unknown.\n");
 			print_help();

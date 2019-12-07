@@ -17,5 +17,6 @@ files *files_init(void);
 int files_destroy(files *f);
 
 int files_traverse(files *f, const char *startpath);
+int init_site(const char *name);
 
 #endif /* FILES_H */
