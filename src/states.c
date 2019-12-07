@@ -513,3 +513,29 @@ state_generate(state *s)
 	return 0;
 }
 
+/* Configuration file
+ * TODO
+ */
+int
+state_config(state *s, const char *filepath)
+{
+	(void)(s);
+
+	FILE *fp = NULL;
+	//char line[1024];
+
+	fp = fopen(filepath, "r");
+
+/* TODO
+	while ((fgets(line, 1024, fp)) != NULL) {
+
+	}
+*/
+
+	if (fp != NULL) {
+		fclose(fp);
+	}
+
+	return 0;
+}
+

@@ -64,5 +64,6 @@ int state_set_output_file(state *s, const char *filepath);
 int state_generate(state *s);
 int state_level_up(state *s);
 int state_level_down(state *s);
+int state_config(state *s, const char *filepath);
 
 #endif /* STATES_H */
