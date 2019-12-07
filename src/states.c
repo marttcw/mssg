@@ -98,7 +98,7 @@ template_variable(state *s)
 {
 	for (unsigned int i=0; i < s->var_l_m; ++i) {
 		if (!strcmp(s->variables_list[i].name, s->variable)) {
-			printf(s->variables_list[i].value);
+			fprintf(s->fp_o, s->variables_list[i].value);
 			return 0;
 		}
 	}
@@ -192,9 +192,9 @@ state_copy(state *s, const char *c)
 
 		if (s->line[0] != '\0') {
 			if (*c == '\n') {
-				printf("%s\n", s->line);
+				fprintf(s->fp_o, "%s\n", s->line);
 			} else {
-				printf("%s", s->line);
+				fprintf(s->fp_o, "%s", s->line);
 			}
 		}
 
@@ -238,7 +238,7 @@ state_det_spec(state *s, const char *c)
 		break;
 	default:
 		s->fpsc_l[s->fp_l_level].sc.current_state = COPY;
-		printf("{%c", *c);
+		fprintf(s->fp_o, "{%c", *c);
 	}
 
 	return 0;
@@ -484,6 +484,7 @@ state_set_output_file(state *s, const char *filepath)
 	// -1: File not found/read error
 	if ((s->fp_o = fopen(filepath, "w")) == NULL) {
 		fprintf(stderr, "Error occured, cannot set output file: '%s'\n", filepath);
+		perror("    Output error");
 		return -1;
 	}
 	return 0;
@@ -496,17 +497,11 @@ state_generate(state *s)
 
 	while (s->fp_l_level >= 0) {
 		// Read the file
-		while (!feof(s->fpsc_l[s->fp_l_level].fp)) {
-			c = fgetc(s->fpsc_l[s->fp_l_level].fp);
-			if (c == -1) {
-				break;
-			}
-
+		while ((c = fgetc(s->fpsc_l[s->fp_l_level].fp)) != EOF) {
 			if (state_determine_state(s, &c) < 0) {
 				fclose(s->fpsc_l[s->fp_l_level].fp);
 				return -2;
 			}
-
 		}
 
 		// Shift back down if possible, otherwise stop loop

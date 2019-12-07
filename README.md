@@ -26,4 +26,5 @@ A lightweight and fast static site generator that have simple templating functio
 * **Not released yet**
 * Files templating `base and content` works EX: `{% base src/dir/foo.html %}`
 * Text variables and placements EX: `{% string foo "hello world" %}` and `{{ foo }}`
+* Build via files with `index.` in it
 

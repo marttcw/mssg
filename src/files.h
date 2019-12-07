@@ -5,6 +5,7 @@ typedef struct {
 	int type;
 	char *path_full;
 	char *path_relative;
+	char *make_path;
 } file_info;
 
 typedef struct {
@@ -15,7 +16,6 @@ typedef struct {
 files *files_init(void);
 int files_destroy(files *f);
 
-int files_read(const char *filepath);
 int files_traverse(files *f, const char *startpath);
 
 #endif /* FILES_H */

@@ -48,8 +48,9 @@ main(int argc, char **argv)
 			if (ret != EXIT_FAILURE && files_traverse(f, cwd) < 0) {
 				ret = EXIT_FAILURE;
 			}
-		} else if (files_read(argv[1]) < 0) {
-			ret = EXIT_FAILURE;
+		} else {
+			fprintf(stderr, "Paramter unknown.\n");
+			print_help();
 		}
 	} else {
 		fprintf(stderr, "A parameter must be given.\n");
