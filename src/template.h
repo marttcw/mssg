@@ -3,9 +3,7 @@
 
 #include "states.h"
 
-int template_base(state *s, int argc, char **argv, int flag);
-int template_string(state *s, int argc, char **argv, int flag);
-int template_sub_content(state *s, int argc, char **argv, int flag);
-int template_content(state *s, int argc, char **argv, int flag);
+int template_keywords_list(state *s);
+int template_variable(state *s);
 
 #endif /* TEMPLATE_H */

@@ -22,9 +22,11 @@ A lightweight and fast static site generator that have simple templating functio
   * Thumbnail generator
 
 ## Changelogs
-### 2019-12-03: v0.0.1
+### 2019-12-08: v0.0.1
 * **Not released yet**
 * Files templating `base and content` works EX: `{% base src/dir/foo.html %}`
 * Text variables and placements EX: `{% string foo "hello world" %}` and `{{ foo }}`
 * Build via files with `index.` in it
+* Link file EX: `{% link src/dir/style.css %}`
+* Link file by variable EX: `{% link_var foo %}` (TODO)
 
