@@ -16,7 +16,7 @@ char *
 make_rel(const char *base_path, const char *full_path)
 {
 	int i;
-	char *rel_path = (char *) calloc(PATH_SIZE, sizeof(char));
+	char *rel_path = calloc(PATH_SIZE, sizeof(char));
 
 	for (i = 0; base_path[i] == full_path[i]; ++i) {
 	}
@@ -31,7 +31,7 @@ char *
 make_build(const char *src_path)
 {
 	int i;
-	char *build_path = (char *) calloc(PATH_SIZE, sizeof(char));
+	char *build_path = calloc(PATH_SIZE, sizeof(char));
 	char src_prefix[] = "src/";
 
 	for (i = 0; src_path[i] == src_prefix[i]; ++i) {
@@ -51,13 +51,13 @@ make_build(const char *src_path)
 files *
 files_init(void)
 {
-	files *f = (files *) malloc(sizeof(files));
+	files *f = malloc(sizeof(files));
 
-	f->fil = (file_info *) malloc(ALLOC_FILES * sizeof(file_info));
+	f->fil = malloc(ALLOC_FILES * sizeof(file_info));
 	for (int i=0; i < ALLOC_FILES; ++i) {
 		f->fil[i].type = -1;
-		f->fil[i].path_full = (char *) calloc(PATH_SIZE, sizeof(char));
-		f->fil[i].path_relative = (char *) calloc(PATH_SIZE, sizeof(char));
+		f->fil[i].path_full = calloc(PATH_SIZE, sizeof(char));
+		f->fil[i].path_relative = calloc(PATH_SIZE, sizeof(char));
 	}
 	f->fii = 0;
 
@@ -106,7 +106,7 @@ files_directory(files *f, const char *base_dirpath, const char *dirpath, int typ
 {
 	struct dirent *entry;
 	DIR *dp = NULL;
-	char *path_full = (char *) calloc(PATH_SIZE, sizeof(char));
+	char *path_full = calloc(PATH_SIZE, sizeof(char));
 
 	if (path_full == NULL) {
 		perror("calloc");
