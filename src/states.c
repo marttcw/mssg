@@ -40,7 +40,7 @@ reset_keywords_list(state *s)
 int
 state_init(state *s)
 {
-	s->fpsc_l = (fp_sc *) malloc(ALLOC_SIZE * (sizeof(fp_sc)));
+	s->fpsc_l = malloc(ALLOC_SIZE * (sizeof(fp_sc)));
 	for (int i=0; i < ALLOC_SIZE; ++i) {
 		s->fpsc_l[i].sc.current_state = COPY;
 		s->fpsc_l[i].sc.spec_state = OUT;
@@ -48,24 +48,24 @@ state_init(state *s)
 		s->fpsc_l[i].fp = NULL;
 	}
 
-	s->keywords_list = (char **) calloc(ALLOC_SIZE, sizeof(char *));
+	s->keywords_list = calloc(ALLOC_SIZE, sizeof(char *));
 	for (int i=0; i < ALLOC_SIZE; ++i) {
-		s->keywords_list[i] = (char *) calloc(ALLOC_SIZE_SUB, sizeof(char));
+		s->keywords_list[i] = calloc(ALLOC_SIZE_SUB, sizeof(char));
 	}
 	s->keyword_i = 0;
 	s->kci = 0;
 	s->prev = '%';
-	s->variable = (char *) calloc(ALLOC_SIZE_SUB, sizeof(char));
+	s->variable = calloc(ALLOC_SIZE_SUB, sizeof(char));
 	s->var_i = 0;
 	s->var_l_m = 0;
-	s->variables_list = (var_info *) calloc(ALLOC_SIZE_VAR, sizeof(var_info));
+	s->variables_list = calloc(ALLOC_SIZE_VAR, sizeof(var_info));
 	for (int i=0; i < ALLOC_SIZE; ++i) {
-		s->variables_list[i].name = (char *) calloc(ALLOC_SIZE_SUB, sizeof(char));
-		s->variables_list[i].value = (char *) calloc(ALLOC_SIZE_SUB, sizeof(char));
+		s->variables_list[i].name = calloc(ALLOC_SIZE_SUB, sizeof(char));
+		s->variables_list[i].value = calloc(ALLOC_SIZE_SUB, sizeof(char));
 		s->variables_list[i].type = NONE;
 	}
 	s->li_max = ALLOC_SIZE_LINE;
-	s->line = (char *) calloc(s->li_max, sizeof(char));
+	s->line = calloc(s->li_max, sizeof(char));
 	s->li = 0;
 	s->fp_l_level = -1;
 	s->fp_o = NULL;
@@ -77,6 +77,9 @@ state_init(state *s)
 int
 state_destroy(state *s)
 {
+#ifdef DEBUG
+	printf("state_destroy called\n");
+#endif
 	if (s->fp_o != NULL) {
 		fclose(s->fp_o);
 	}
@@ -91,11 +94,6 @@ state_destroy(state *s)
 		free(s->keywords_list[i]);
 	}
 	free(s->keywords_list);
-	for (int i=0; i <= s->fp_l_level_max; ++i) {
-		if (s->fpsc_l[i].fp != NULL) {
-			fclose(s->fpsc_l[i].fp);
-		}
-	}
 	free(s->fpsc_l);
 
 	return 0;
@@ -340,6 +338,24 @@ state_determine_state(state *s, const char *c)
 	return 0;
 }
 
+#ifdef DEBUG
+int
+state_debug_print(state *s)
+{
+	printf("States:\n");
+	for (int i=0; i <= s->fp_l_level_max; ++i) {
+		if (i == s->fp_l_level) {
+			printf("=> %d\n", i);
+		} else {
+			printf("   %d\n", i);
+		}
+	}
+	putchar('\n');
+
+	return 0;
+}
+#endif
+
 int
 state_set_level_file(state *s, const char *filepath)
 {
@@ -354,6 +370,8 @@ state_set_level_file(state *s, const char *filepath)
 
 #ifdef DEBUG
 	printf("level: %d/%d\n", s->fp_l_level, s->fp_l_level_max);
+	printf("NEW: %s\n", filepath);
+	state_debug_print(s);
 #endif
 
 	return 0;
@@ -375,10 +393,13 @@ state_set_bef_level_file(state *s, const char *filepath)
 	if (state_set_level_file(s, filepath) == -1) {
 		return -1;
 	}
+
+	fpsc_swap(&s->fpsc_l[s->fp_l_level - 1], &s->fpsc_l[s->fp_l_level]);
+
 #ifdef DEBUG
 	printf("%d <-> %d\n", s->fp_l_level-1, s->fp_l_level);
+	state_debug_print(s);
 #endif
-	fpsc_swap(&s->fpsc_l[s->fp_l_level - 1], &s->fpsc_l[s->fp_l_level]);
 	return 0;
 }
 
@@ -390,6 +411,10 @@ state_level_up(state *s)
 		return -1;
 	}
 	s->fpsc_l[++s->fp_l_level].sc.current_state = COPY;
+#ifdef DEBUG
+	printf("DEBUG: state_level_up\n");
+	state_debug_print(s);
+#endif
 	return 0;
 }
 
@@ -401,6 +426,27 @@ state_level_down(state *s)
 		return -1;
 	}
 	s->fpsc_l[--s->fp_l_level].sc.current_state = COPY;
+#ifdef DEBUG
+	printf("DEBUG: state_level_down\n");
+	state_debug_print(s);
+#endif
+	return 0;
+}
+
+int
+state_level_down_close(state *s)
+{
+	if (s->fpsc_l[s->fp_l_level].fp != NULL) {
+		fclose(s->fpsc_l[s->fp_l_level].fp);
+	}
+	if (state_level_down(s) == -1) {
+		return -1;
+	}
+	--s->fp_l_level_max;
+#ifdef DEBUG
+	printf("DEBUG: state_level_down_close\n");
+	state_debug_print(s);
+#endif
 	return 0;
 }
 
@@ -425,13 +471,20 @@ state_generate(state *s)
 		// Read the file
 		while ((c = fgetc(s->fpsc_l[s->fp_l_level].fp)) != EOF) {
 			if (state_determine_state(s, &c) < 0) {
+				fprintf(stderr, "ERROR: File generation error has occured\n");
 				fclose(s->fpsc_l[s->fp_l_level].fp);
 				return -2;
 			}
 		}
+#ifdef DEBUG
+		printf("End of file read\n");
+#endif
 
 		// Shift back down if possible, otherwise stop loop
-		if (state_level_down(s) < 0) {
+		if (state_level_down_close(s) < 0) {
+#ifdef DEBUG
+			printf("state_level_down_close return < 0\n");
+#endif
 			break;
 		}
 	}

@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
+//#define DEBUG
+
 typedef struct func_matcher {
 	char *str;
 	int (*f)(state *s, int, char **, int);
