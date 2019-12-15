@@ -37,15 +37,18 @@ reset_keywords_list(state *s)
  * params:
  * 	"state *" Given state struct
  */
-int
-state_init(state *s)
+state *
+state_new(void)
 {
+	state *s = malloc(sizeof(state));
+
 	s->fpsc_l = malloc(ALLOC_SIZE * (sizeof(fp_sc)));
 	for (int i=0; i < ALLOC_SIZE; ++i) {
 		s->fpsc_l[i].sc.current_state = COPY;
 		s->fpsc_l[i].sc.spec_state = OUT;
 		s->fpsc_l[i].sc.previous_state = NONE;
 		s->fpsc_l[i].fp = NULL;
+		s->fpsc_l[i].type = -1;
 	}
 
 	s->keywords_list = calloc(ALLOC_SIZE, sizeof(char *));
@@ -71,7 +74,7 @@ state_init(state *s)
 	s->fp_o = NULL;
 	s->fp_l_level_max = -1;
 
-	return 0;
+	return s;
 }
 
 int
@@ -227,6 +230,15 @@ state_spec_out(state *s, const char *c)
 			s->kci = 0;
 		}
 		break;
+	case '\n':	// Only for configuration file
+		if (s->fpsc_l[s->fp_l_level].type == 1) {
+			// Use line
+			s->keywords_list[s->keyword_i][s->kci] = '\0';
+			template_keywords_list(s);
+			reset_keywords_list(s);
+			break;
+		}
+		break;
 	case '%':
 		s->fpsc_l[s->fp_l_level].sc.previous_state = SPEC;
 		s->fpsc_l[s->fp_l_level].sc.current_state = AFT_SPEC;
@@ -338,6 +350,13 @@ state_determine_state(state *s, const char *c)
 	return 0;
 }
 
+int
+state_config_state(state *s, const char *c)
+{
+	state_spec(s, c);
+	return 0;
+}
+
 #ifdef DEBUG
 int
 state_debug_print(state *s)
@@ -357,13 +376,15 @@ state_debug_print(state *s)
 #endif
 
 int
-state_set_level_file(state *s, const char *filepath)
+state_set_level_file(state *s, const char *filepath, int type)
 {
 	// -1: File not found/read error
 	if ((s->fpsc_l[(s->fp_l_level + 1)].fp = fopen(filepath, "r")) == NULL) {
 		fprintf(stderr, "Error occured, cannot read file: '%s'\n", filepath);
 		return -1;
 	}
+
+	s->fpsc_l[(s->fp_l_level + 1)].type = type;
 
 	++s->fp_l_level;
 	++s->fp_l_level_max;
@@ -388,9 +409,9 @@ fpsc_swap(fp_sc *p1, fp_sc *p2)
 }
 
 int
-state_set_bef_level_file(state *s, const char *filepath)
+state_set_bef_level_file(state *s, const char *filepath, int type)
 {
-	if (state_set_level_file(s, filepath) == -1) {
+	if (state_set_level_file(s, filepath, type) == -1) {
 		return -1;
 	}
 
@@ -470,10 +491,21 @@ state_generate(state *s)
 	while (s->fp_l_level >= 0) {
 		// Read the file
 		while ((c = fgetc(s->fpsc_l[s->fp_l_level].fp)) != EOF) {
-			if (state_determine_state(s, &c) < 0) {
-				fprintf(stderr, "ERROR: File generation error has occured\n");
-				fclose(s->fpsc_l[s->fp_l_level].fp);
-				return -2;
+			switch (s->fpsc_l[s->fp_l_level].type) {
+			case 0:		// HTML file
+				if (state_determine_state(s, &c) < 0) {
+					fprintf(stderr, "ERROR: File generation error has occured\n");
+					fclose(s->fpsc_l[s->fp_l_level].fp);
+					return -2;
+				}
+				break;
+			case 1:		// Configuration file
+				if (state_config_state(s, &c) < 0) {
+					fprintf(stderr, "ERROR: File configuration read error has occured\n");
+					fclose(s->fpsc_l[s->fp_l_level].fp);
+					return -3;
+				}
+				break;
 			}
 		}
 #ifdef DEBUG
@@ -487,32 +519,6 @@ state_generate(state *s)
 #endif
 			break;
 		}
-	}
-
-	return 0;
-}
-
-/* Configuration file
- * TODO
- */
-int
-state_config(state *s, const char *filepath)
-{
-	(void)(s);
-
-	FILE *fp = NULL;
-	//char line[1024];
-
-	fp = fopen(filepath, "r");
-
-/* TODO
-	while ((fgets(line, 1024, fp)) != NULL) {
-
-	}
-*/
-
-	if (fp != NULL) {
-		fclose(fp);
 	}
 
 	return 0;

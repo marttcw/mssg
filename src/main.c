@@ -36,7 +36,7 @@ main(int argc, char **argv)
 	int ret = EXIT_SUCCESS;
 	char cwd[256];
 
-	files *f = files_init();
+	files *f = files_new();
 
 	if (argc > 1) {
 		if (!strcmp(argv[1], "build")) {
@@ -45,7 +45,7 @@ main(int argc, char **argv)
 				ret = EXIT_FAILURE;
 			}
 
-			if (ret != EXIT_FAILURE && files_traverse(f, cwd) < 0) {
+			if (ret != EXIT_FAILURE && files_build(f, cwd) < 0) {
 				ret = EXIT_FAILURE;
 			}
 		} else if (!strcmp(argv[1], "init")) {
