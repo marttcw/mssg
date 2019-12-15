@@ -1,7 +1,7 @@
 {% string title "Test page" %}
 {% string yes "First test" %}
 {% string no "Second test" %}
-{% base template/base.html %}
+{% base src/base.html %}
 <h1>{{ title }}</h1>
 <p>
 This is the index page.
@@ -12,6 +12,13 @@ This is the index page.
 <h3>{{ yes }}</h3>
 {% content src/extra.html %}
 {% content src/extra.html %}
+<h3>Other features</h3>
+{% block otherfooter %}
+<p>
+This is a block quote thing
+More than whatever lines
+</p>
+{% endblock %}
 <p>
 HUH
 </p>

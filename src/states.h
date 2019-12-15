@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-enum e_states{ STATE_NONE, COPY, DET_SPEC, SPEC, VAR, AFT_SPEC };
+enum e_states{ STATE_NONE, COPY, DET_SPEC, SPEC, VAR, AFT_SPEC, BLOCK };
 enum e_states_spec{ IN, OUT };
 enum e_var_type{ NONE, INT, STR, CONTENT };
 
@@ -33,6 +33,7 @@ typedef struct {
 
 	// Templating
 	char **keywords_list;
+	unsigned int *kci_alloc;
 	unsigned int keyword_i;
 	unsigned int kci;
 	char prev;
