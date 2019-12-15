@@ -30,7 +30,7 @@ template_base(state *s, int argc, char **argv, int flag)
 		return -1;
 	}
 
-	state_set_bef_level_file(s, argv[1]);
+	state_set_bef_level_file(s, argv[1], 0);
 	state_level_down(s);
 
 	return 0;
@@ -80,7 +80,7 @@ template_content(state *s, int argc, char **argv, int flag)
 		return -1;
 	}
 
-	state_set_level_file(s, argv[1]);
+	state_set_level_file(s, argv[1], 0);
 	state_level_up(s);
 
 	return 0;
@@ -182,7 +182,7 @@ template_variable(state *s)
 {
 	for (unsigned int i=0; i < s->var_l_m; ++i) {
 		if (!strcmp(s->variables_list[i].name, s->variable)) {
-			fprintf(s->fp_o, s->variables_list[i].value);
+			fprintf(s->fp_o, "%s", s->variables_list[i].value);
 			return 0;
 		}
 	}

@@ -49,7 +49,7 @@ make_build(const char *src_path)
 }
 
 files *
-files_init(void)
+files_new(void)
 {
 	files *f = malloc(sizeof(files));
 
@@ -79,24 +79,14 @@ files_destroy(files *f)
 }
 
 int
-files_read(file_info *fil)
+file_read(file_info *fil, state *s)
 {
-	if (mkdir("build", 0777) < 0) {
-		// If the error is not directory already exists
-		if (errno != 17) {
-			perror("Error: Directory creation error:");
-		}
-	} else {
-		printf("Build directory created\n");
+	state_set_level_file(s, fil->path_relative, fil->type);
+	// Type is HTML file
+	if (fil->type == 0) {
+		state_set_output_file(s, fil->make_path);
 	}
-
-	state s;
-
-	state_init(&s);
-	state_set_level_file(&s, fil->path_relative);
-	state_set_output_file(&s, fil->make_path);
-	state_generate(&s);
-	state_destroy(&s);
+	state_generate(s);
 
 	return 0;
 }
@@ -133,10 +123,10 @@ files_directory(files *f, const char *base_dirpath, const char *dirpath, int typ
 					files_directory(f, base_dirpath, path_full, type);
 				}
 			} else {
-				if (!strcmp(entry->d_name, "conf.toml")) {
+				if (!strcmp(entry->d_name, "config")) {
 					f->fil[f->fii].type = 1;
 				} else if (type != -1) {
-					f->fil[f->fii].type = type;
+					f->fil[f->fii].type = 0;
 				}
 
 				if (f->fil[f->fii].type != -1) {
@@ -156,18 +146,55 @@ files_directory(files *f, const char *base_dirpath, const char *dirpath, int typ
 }
 
 int
-files_traverse(files *f, const char *startpath)
+files_build(files *f, const char *startpath)
 {
+	int type_loop = 1;
+	unsigned int i;
+	state *s = state_new();
+
 	files_directory(f, startpath, startpath, -1);
 
-	for (unsigned int i=0; i < f->fii; ++i) {
+	// Make the make paths (if available)
+	for (i = 0; i < f->fii; ++i) {
 		f->fil[i].make_path = make_build(f->fil[i].path_relative);
-		if (f->fil[i].make_path != NULL) {
-			files_read(&f->fil[i]);
-		} else {
-			//printf("%d: %s\n", f->fil[i].type, f->fil[i].path_relative);
-		}
 	}
+
+	// Try to make the directory
+	if (mkdir("build", 0777) < 0) {
+		// If the error is not directory already exists
+		if (errno != 17) {
+			perror("Error: Directory creation error:");
+		}
+	} else {
+		printf("Build directory created\n");
+	}
+
+	i = 0;
+	while (type_loop >= 0) {
+		// If i is out of range, reset i and shift down type
+		if (i >= f->fii) {
+			--type_loop;
+			i = 0;
+			continue;
+		}
+
+		switch (type_loop) {
+		case 1:
+			if (f->fil[i].type == 1) {
+				file_read(&f->fil[i], s);
+			}
+			break;
+		case 0:
+			if (f->fil[i].make_path != NULL) {
+				file_read(&f->fil[i], s);
+			}
+			break;
+		}
+
+		++i;
+	}
+
+	state_destroy(s);
 
 	return 0;
 }

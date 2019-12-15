@@ -22,6 +22,7 @@ typedef struct {
 typedef struct {
 	states_collection sc;
 	FILE *fp;
+	int type;
 } fp_sc;
 
 typedef struct {
@@ -54,12 +55,12 @@ typedef struct {
 } state;
 
 // Initialise/destroyer
-int state_init(state *s);
+state *state_new(void);
 int state_destroy(state *s);
 
 int state_determine_state(state *s, const char *c);
-int state_set_level_file(state *s, const char *filepath);
-int state_set_bef_level_file(state *s, const char *filepath);
+int state_set_level_file(state *s, const char *filepath, int type);
+int state_set_bef_level_file(state *s, const char *filepath, int type);
 int state_set_output_file(state *s, const char *filepath);
 int state_generate(state *s);
 int state_level_up(state *s);
