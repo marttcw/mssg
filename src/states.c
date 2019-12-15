@@ -18,6 +18,7 @@ int state_det_spec(state *s, const char *c);
 int state_spec(state *s, const char *c);
 int state_var(state *s, const char *c);
 int state_aft_spec(state *s, const char *c);
+int state_block(state *s, const char *c);
 
 void
 reset_keywords_list(state *s)
@@ -52,8 +53,10 @@ state_new(void)
 	}
 
 	s->keywords_list = calloc(ALLOC_SIZE, sizeof(char *));
+	s->kci_alloc = calloc(ALLOC_SIZE, sizeof(int));
 	for (int i=0; i < ALLOC_SIZE; ++i) {
 		s->keywords_list[i] = calloc(ALLOC_SIZE_SUB, sizeof(char));
+		s->kci_alloc[i] = ALLOC_SIZE;
 	}
 	s->keyword_i = 0;
 	s->kci = 0;
@@ -96,6 +99,7 @@ state_destroy(state *s)
 	for (unsigned int i=0; i < ALLOC_SIZE; ++i) {
 		free(s->keywords_list[i]);
 	}
+	free(s->kci_alloc);
 	free(s->keywords_list);
 	free(s->fpsc_l);
 
@@ -234,8 +238,15 @@ state_spec_out(state *s, const char *c)
 		if (s->fpsc_l[s->fp_l_level].type == 1) {
 			// Use line
 			s->keywords_list[s->keyword_i][s->kci] = '\0';
-			template_keywords_list(s);
-			reset_keywords_list(s);
+			++s->keyword_i;	// Offsets
+			int template_flag = template_keywords_list(s);
+			switch (template_flag) {
+			case 1:
+				break;
+			default:
+				reset_keywords_list(s);
+				break;
+			}
 			break;
 		}
 		break;
@@ -266,6 +277,49 @@ state_spec(state *s, const char *c)
 	case OUT:	state_spec_out(s, c);	break;
 	}
 
+	return 0;
+}
+
+// TODO
+/* At a variable block state
+ * 	EX:
+ * 		{% block foo %}
+ * 			<p>
+ * 			This is a block sections.
+ * 			</p>
+ * 		{% endblock %}
+ *
+ * returns int error codes
+ * params:
+ * 	"state *" Given state struct
+ * 	"const char *" Character given
+ */
+int
+state_block(state *s, const char *c)
+{
+	switch (*c) {
+	case '{':
+		s->prev = '{';
+		break;
+	case '%':
+		if (s->prev == '{') {
+			s->fpsc_l[s->fp_l_level].sc.previous_state = BLOCK;
+			s->fpsc_l[s->fp_l_level].sc.current_state = SPEC;
+			s->keywords_list[s->keyword_i][s->kci] = '\0';
+			break;
+		}
+		s->keywords_list[s->keyword_i][s->kci++] = '{';
+		// Implicitly tells the compiler that a fallthrough is expected
+		__attribute__ ((fallthrough));
+	default:
+		if (s->kci >= (s->kci_alloc[s->keyword_i] - 1)) {
+			s->kci_alloc[s->keyword_i] = (unsigned int) (1.5 * s->kci_alloc[s->keyword_i]);
+			s->keywords_list[s->keyword_i] = realloc(s->keywords_list[s->keyword_i],
+					s->kci_alloc[s->keyword_i] * sizeof(char));
+		}
+		s->keywords_list[s->keyword_i][s->kci++] = *c;
+		s->prev = *c;
+	}
 	return 0;
 }
 
@@ -305,10 +359,16 @@ state_aft_spec(state *s, const char *c)
 	switch (*c) {
 	case '}':
 		switch (s->fpsc_l[s->fp_l_level].sc.previous_state) {
-		case SPEC:
+		case SPEC:	// HTML file
 			s->keywords_list[s->keyword_i][s->kci] = '\0';
-			template_keywords_list(s);
-			reset_keywords_list(s);
+			int template_flag = template_keywords_list(s);
+			switch (template_flag) {
+			case 1:	// Current state already set to BLOCK
+				return 0;
+			default:
+				reset_keywords_list(s);
+				break;
+			}
 			break;
 		case VAR:
 			// Null terminate string
@@ -342,6 +402,7 @@ state_determine_state(state *s, const char *c)
 	case DET_SPEC:	state_det_spec(s, c);	break;
 	case AFT_SPEC:	state_aft_spec(s, c);	break;
 	case VAR:	state_var(s, c);	break;
+	case BLOCK:	state_block(s, c);	break;
 	default:
 		fprintf(stderr, "State error\n");
 		return -2;

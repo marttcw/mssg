@@ -181,11 +181,17 @@ files_build(files *f, const char *startpath)
 		switch (type_loop) {
 		case 1:
 			if (f->fil[i].type == 1) {
+#ifdef DEBUG
+				printf("file_read config: \"%s\"\n", f->fil[i].path_relative);
+#endif
 				file_read(&f->fil[i], s);
 			}
 			break;
 		case 0:
 			if (f->fil[i].make_path != NULL) {
+#ifdef DEBUG
+				printf("file_read html: \"%s\" \"%s\"\n", f->fil[i].make_path, f->fil[i].path_relative);
+#endif
 				file_read(&f->fil[i], s);
 			}
 			break;

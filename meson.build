@@ -16,10 +16,9 @@ src = [
 ]
 
 executable('mssg'
-           , sources : src
-           , include_directories : [src_inc]
-           , install : true
-           , install_dir : get_option('sbindir')
+  , sources : src
+  , include_directories : [src_inc]
+  , install : true
+  , install_dir : get_option('sbindir')
 )
-
 

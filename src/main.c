@@ -7,7 +7,7 @@
 #include "files.h"
 
 #define VERSION "v0.0.1"
-#define DEV_BUILD
+//#define DEV_BUILD
 
 void
 print_help(void)
