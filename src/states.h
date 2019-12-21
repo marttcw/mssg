@@ -23,6 +23,8 @@ typedef struct {
 	states_collection sc;
 	FILE *fp;
 	int type;
+	char *filename;
+	unsigned int line;
 } fp_sc;
 
 typedef struct {
@@ -47,6 +49,7 @@ typedef struct {
 	var_info *variables_list;
 	unsigned int var_l_m;
 
+	// List of files and its associated configuration
 	fp_sc *fpsc_l;
 	int fp_l_level;
 	int fp_l_level_max;

@@ -202,6 +202,7 @@ template_variable(state *s)
 			return 0;
 		}
 	}
+	fprintf(stderr, "'%s': Cannot find variable '%s': Misspelling or not defined before usage\n", s->fpsc_l[s->fp_l_level].filename, s->variable);
 
 	return -1;
 }
