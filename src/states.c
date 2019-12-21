@@ -50,6 +50,7 @@ state_new(void)
 		s->fpsc_l[i].sc.previous_state = NONE;
 		s->fpsc_l[i].fp = NULL;
 		s->fpsc_l[i].type = -1;
+		s->fpsc_l[i].filename = NULL;
 	}
 
 	s->keywords_list = calloc(ALLOC_SIZE, sizeof(char *));
@@ -445,6 +446,9 @@ state_set_level_file(state *s, const char *filepath, int type)
 		return -1;
 	}
 
+	// Copy over the filename and type
+	s->fpsc_l[(s->fp_l_level + 1)].filename = calloc(strlen(filepath), sizeof(char));
+	strcpy(s->fpsc_l[(s->fp_l_level + 1)].filename, filepath);
 	s->fpsc_l[(s->fp_l_level + 1)].type = type;
 
 	++s->fp_l_level;
@@ -505,6 +509,7 @@ state_level_down(state *s)
 {
 	// -1: Cannot go below min level zero
 	if (s->fp_l_level == 0) {
+		--s->fp_l_level;
 		return -1;
 	}
 	s->fpsc_l[--s->fp_l_level].sc.current_state = COPY;
@@ -518,10 +523,20 @@ state_level_down(state *s)
 int
 state_level_down_close(state *s)
 {
+	// Free up resources
 	if (s->fpsc_l[s->fp_l_level].fp != NULL) {
 		fclose(s->fpsc_l[s->fp_l_level].fp);
 	}
+#ifdef DEBUG
+	printf("Down: %d: %s\n", s->fp_l_level, s->fpsc_l[s->fp_l_level].filename);
+#endif
+	if (s->fpsc_l[s->fp_l_level].filename != NULL) {
+		free(s->fpsc_l[s->fp_l_level].filename);
+	}
+
 	if (state_level_down(s) == -1) {
+		s->fp_l_level = -1;
+		s->fp_l_level_max = -1;
 		return -1;
 	}
 	--s->fp_l_level_max;
