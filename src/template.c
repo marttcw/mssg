@@ -17,7 +17,6 @@ enum flags {
 	EXTENDS = 0,
 	EXTENDS_BASE = 1,
 	LINK = 0,
-	LINK_VAR = 1,
 	CONTENTS = 0,
 	CONTENTS_SUB = 1,
 	VARADD_STR = 0,
@@ -81,6 +80,11 @@ template_variable_add(state *s, int argc, char **argv, int flag)
 	strcpy(s->variables_list[s->var_l_m].value, argv[2]);
 	s->variables_list[s->var_l_m].type = STR;
 
+	// If it is a configuration file - GLOBAL ensures it get kept after file scope out
+	if (s->fpsc_l[s->fp_l_level].type == 1) {
+		s->variables_list[s->var_l_m].flag = GLOBAL;
+	}
+
 	++s->var_l_m;
 
 	if (flag == VARADD_STR) {
@@ -111,23 +115,18 @@ int
 template_link(state *s, int argc, char **argv, int flag)
 {
 	int i;
-	char src_prefix[] = "src/";
+	char *src_prefix = "src/";
 
 	if (argc <= 1) {
 		switch (flag) {
 		case LINK:
 			fprintf(stderr, "Error: Template: link - need 2 arguments: link {filepath}");
 			break;
-		case LINK_VAR:
-			fprintf(stderr, "Error: Template: link_var - need 2 arguments: link_var {filepath}");
-			break;
 		}
 		return -1;
-	} else if (flag == LINK_VAR) {
-		argc = 2;
 	}
 
-	for (i = 0; argv[1] == src_prefix; ++i) {
+	for (i = 0; argv[1][i] == src_prefix[i]; ++i) {
 	}
 
 	fprintf(s->fp_o, "%s", argv[1]+(i));
@@ -166,11 +165,10 @@ template_keywords_list(state *s)
 		{"base", 	&template_extends, 	EXTENDS_BASE},	// {% base src/dir/foo.html %}
 		{"extends",	&template_extends,	EXTENDS},	// {% extends src/dir/foo.html %}
 		{"string", 	&template_variable_add,	VARADD_STR},	// {% string foo "hello world" %}
-		{"SUB_CONTENT", &template_content, 	CONTENTS_SUB},	// {% SUB_CONTENT %}
+		{"sub_content", &template_content, 	CONTENTS_SUB},	// {% sub_content %}
 		{"content",	&template_content,	CONTENTS},	// {% content src/dir/foo.html %}
 		{"link",	&template_link, 	LINK},		// {% link src/dir/foo.css %}
-		{"link_var",	&template_link, 	LINK_VAR},	// {% link_var foo %}
-		{"block",	&template_variable_add,	VARADD_BLOCK},	// {% block src/dir/foo.html %} ... {% endblock %}
+		{"block",	&template_variable_add,	VARADD_BLOCK},	// {% block foo %} ... {% endblock %}
 		{NULL, 		NULL,			-2}
 	};
 
@@ -186,7 +184,8 @@ template_keywords_list(state *s)
 	}
 
 	// No arguments found
-	fprintf(stderr, "Error: Template: No arguments found\n");
+	fprintf(stderr, "'%s' (%d): Template: '%s' not found: Mis-spelling\n"
+			, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line, s->keywords_list[0]);
 	return -3;
 }
 
@@ -202,7 +201,8 @@ template_variable(state *s)
 			return 0;
 		}
 	}
-	fprintf(stderr, "'%s': Cannot find variable '%s': Misspelling or not defined before usage\n", s->fpsc_l[s->fp_l_level].filename, s->variable);
+	fprintf(stderr, "'%s' (%d): Variable: '%s' not found: Mis-spelling or not defined before usage\n"
+			, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line, s->variable);
 
 	return -1;
 }

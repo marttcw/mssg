@@ -12,6 +12,26 @@
 #define ALLOC_FILES (2560)
 #define PATH_SIZE (1024)
 
+inline char *
+path_omit_name(const char *path)
+{
+	char *new_path = calloc(PATH_SIZE, sizeof(char));
+	int i, slash_pos = 0, path_len = strlen(path);
+
+	for (i = 0; path[i] != '\0' && i < path_len; ++i) {
+		if (path[i] == '/') {
+			slash_pos = i;
+		}
+	}
+
+	strncpy(new_path, path, path_len-slash_pos);
+	if (new_path[strlen(new_path) - 1] != '/') {
+		free(new_path);
+		return NULL;
+	}
+	return new_path;
+}
+
 char *
 make_rel(const char *base_path, const char *full_path)
 {
@@ -87,6 +107,7 @@ file_read(file_info *fil, state *s)
 		state_set_output_file(s, fil->make_path);
 	}
 	state_generate(s);
+	state_generate_cleanup(s);
 
 	return 0;
 }
@@ -192,6 +213,18 @@ files_build(files *f, const char *startpath)
 #ifdef DEBUG
 				printf("file_read html: \"%s\" \"%s\"\n", f->fil[i].make_path, f->fil[i].path_relative);
 #endif
+				// Try to make the directory
+				char *pon = path_omit_name(f->fil[i].make_path);
+				if (pon != NULL) {
+					if (mkdir(pon, 0777) < 0) {
+						// If the error is not directory already exists
+						if (errno != 17) {
+							perror("Error: Directory creation error:");
+						}
+					}
+					free(pon);
+				}
+
 				file_read(&f->fil[i], s);
 			}
 			break;

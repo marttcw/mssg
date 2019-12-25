@@ -15,9 +15,6 @@ print_help(void)
 	printf("mssg HELP\n\n"
 			"init    Initialise a website\n"
 			"build   Build the website\n"
-#ifdef DEV_BUILD
-			"test    Test a file (DEV BUILD)\n"
-#endif
 			"\n"
 			"help    Print this help message\n"
 			"version Print the program version\n"
