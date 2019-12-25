@@ -5,21 +5,6 @@
 <h1>{{ title }}</h1>
 <p>
 This is the index page.
-<b>{{ yes }}</b>
-<br>
-{{ no }}
-</p>
-<h3>{{ yes }}</h3>
-{% content src/extra.html %}
-{% content src/extra.html %}
-<h3>Other features</h3>
-{% block otherfooter %}
-<p>
-This is a block quote thing
-More than whatever lines
-</p>
-{% endblock %}
-<p>
-HUH
+<a href="{% link src/blog/ %}">Blog</a>
 </p>
 

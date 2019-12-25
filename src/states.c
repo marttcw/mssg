@@ -51,6 +51,7 @@ state_new(void)
 		s->fpsc_l[i].fp = NULL;
 		s->fpsc_l[i].type = -1;
 		s->fpsc_l[i].filename = NULL;
+		s->fpsc_l[i].line = 1;
 	}
 
 	s->keywords_list = calloc(ALLOC_SIZE, sizeof(char *));
@@ -66,10 +67,11 @@ state_new(void)
 	s->var_i = 0;
 	s->var_l_m = 0;
 	s->variables_list = calloc(ALLOC_SIZE_VAR, sizeof(var_info));
-	for (int i=0; i < ALLOC_SIZE; ++i) {
+	for (int i=0; i < ALLOC_SIZE_VAR; ++i) {
 		s->variables_list[i].name = calloc(ALLOC_SIZE_SUB, sizeof(char));
 		s->variables_list[i].value = calloc(ALLOC_SIZE_SUB, sizeof(char));
 		s->variables_list[i].type = NONE;
+		s->variables_list[i].flag = LOCAL;
 	}
 	s->li_max = ALLOC_SIZE_LINE;
 	s->line = calloc(s->li_max, sizeof(char));
@@ -134,9 +136,14 @@ state_copy(state *s, const char *c)
 		s->li = 0;
 		s->line[0] = '\0';
 
-		// Scope out of copy
-		if (*c == '{') {
+		switch (*c) {
+		case '{':
+			// Scope out of copy
 			s->fpsc_l[s->fp_l_level].sc.current_state = DET_SPEC;
+			break;
+		case '\n':
+			// Increment line counter
+			++s->fpsc_l[s->fp_l_level].line;
 		}
 		break;
 	default:
@@ -523,6 +530,8 @@ state_level_down(state *s)
 int
 state_level_down_close(state *s)
 {
+	s->fpsc_l[s->fp_l_level].line = 1;
+
 	// Free up resources
 	if (s->fpsc_l[s->fp_l_level].fp != NULL) {
 		fclose(s->fpsc_l[s->fp_l_level].fp);
@@ -594,6 +603,21 @@ state_generate(state *s)
 			printf("state_level_down_close return < 0\n");
 #endif
 			break;
+		}
+	}
+
+	return 0;
+}
+
+// Temporary solution, a hash map should not need this
+int
+state_generate_cleanup(state *s)
+{
+	for (unsigned int i=0; i < s->var_l_m; ++i) {
+		if (s->variables_list[i].flag == LOCAL) {
+			s->variables_list[i].name[0] = '\0';
+			s->variables_list[i].value[0] = '\0';
+			s->variables_list[i].type = NONE;
 		}
 	}
 
