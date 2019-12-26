@@ -5,6 +5,7 @@
 
 #include "states.h"
 #include "files.h"
+#include "hashmap.h"
 
 #define VERSION "v0.0.1"
 //#define DEV_BUILD

@@ -13,6 +13,7 @@ src = [
   , './src/states.c'
   , './src/template.c'
   , './src/files.c'
+  , './src/hashmap.c'
 ]
 
 executable('mssg'
