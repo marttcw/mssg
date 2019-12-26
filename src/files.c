@@ -1,5 +1,6 @@
 #include "files.h"
 #include "states.h"
+#include "extra.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -12,11 +13,11 @@
 #define ALLOC_FILES (2560)
 #define PATH_SIZE (1024)
 
-inline char *
+char *
 path_omit_name(const char *path)
 {
-	char *new_path = calloc(PATH_SIZE, sizeof(char));
-	int i, slash_pos = 0, path_len = strlen(path);
+	unsigned int i, slash_pos = 0, path_len = strlen(path);
+	char *new_path = calloc(path_len, sizeof(char));
 
 	for (i = 0; path[i] != '\0' && i < path_len; ++i) {
 		if (path[i] == '/') {
@@ -24,7 +25,7 @@ path_omit_name(const char *path)
 		}
 	}
 
-	strncpy(new_path, path, path_len-slash_pos);
+	strncpy(new_path, path, ++slash_pos);
 	if (new_path[strlen(new_path) - 1] != '/') {
 		free(new_path);
 		return NULL;
@@ -215,7 +216,7 @@ files_build(files *f, const char *startpath)
 				// Try to make the directory
 				char *pon = path_omit_name(f->fil[i].make_path);
 				if (pon != NULL) {
-					if (mkdir(pon, 0777) < 0) {
+					if (m_mkdir(pon, 0777) < 0) {
 						// If the error is not directory already exists
 						if (errno != 17) {
 							perror("Error: Directory creation error:");

@@ -66,14 +66,6 @@ state_new(void)
 	s->variable = calloc(ALLOC_SIZE_SUB, sizeof(char));
 	s->var_i = 0;
 	s->variables_hm = hashmap_new(ALLOC_SIZE_HM);
-/*
-	for (int i=0; i < ALLOC_SIZE_VAR; ++i) {
-		s->variables_list[i].name = calloc(ALLOC_SIZE_SUB, sizeof(char));
-		s->variables_list[i].value = calloc(ALLOC_SIZE_SUB, sizeof(char));
-		s->variables_list[i].type = NONE;
-		s->variables_list[i].flag = LOCAL;
-	}
-*/
 	s->li_max = ALLOC_SIZE_LINE;
 	s->line = calloc(s->li_max, sizeof(char));
 	s->li = 0;
