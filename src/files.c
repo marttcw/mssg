@@ -107,7 +107,6 @@ file_read(file_info *fil, state *s)
 		state_set_output_file(s, fil->make_path);
 	}
 	state_generate(s);
-	state_generate_cleanup(s);
 
 	return 0;
 }

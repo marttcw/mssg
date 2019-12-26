@@ -5,7 +5,8 @@
 #include <stdio.h>
 #define STR_SIZE (256)
 
-unsigned long get_hash(const unsigned int size, const char *key)
+unsigned long
+get_hash(const unsigned int size, const char *key)
 {
 	unsigned long hash = 0;
 
@@ -17,7 +18,8 @@ unsigned long get_hash(const unsigned int size, const char *key)
 	return hash % size;
 }
 
-hashmap *hashmap_new(const unsigned int size)
+hashmap *
+hashmap_new(const unsigned int size)
 {
 	hashmap *h = calloc(1, sizeof(hashmap));
 
@@ -30,7 +32,8 @@ hashmap *hashmap_new(const unsigned int size)
 	return h;
 }
 
-void hashmap_destroy(hashmap *h)
+void
+hashmap_destroy(hashmap *h)
 {
 	kv *current = NULL;
 	kv *next_current = NULL;
@@ -53,14 +56,19 @@ void hashmap_destroy(hashmap *h)
 	free(h);
 }
 
-void hashmap_setValue(hashmap *h, const char *key, const char *value)
+void
+hashmap_setValue(hashmap *h,
+		const char *key,
+		const void *value,
+		const unsigned long size)
 {
 	unsigned int hash = get_hash(h->size, key);
 	kv *current = h->array[hash];
 
 	while (current != NULL) {
 		if (!strcmp(current->key, key)) {
-			strcpy(current->value, value);
+			current->value = realloc(current->value, size);
+			memcpy(current->value, value, size);
 			return;		// Value set, return early 
 		}
 		if (current->next == NULL) {
@@ -80,13 +88,14 @@ void hashmap_setValue(hashmap *h, const char *key, const char *value)
 		current = current->next;
 	}
 	current->key = calloc(STR_SIZE, sizeof(char));
-	current->value = calloc(STR_SIZE, sizeof(char));
+	current->value = calloc(1, size);
 	current->next = NULL;
 	strcpy(current->key, key);
-	strcpy(current->value, value);
+	memcpy(current->value, value, size);
 }
 
-char *hashmap_getValue(hashmap *h, const char *key)
+void *
+hashmap_getValue(hashmap *h, const char *key)
 {
 	unsigned int hash = get_hash(h->size, key);
 	kv *current = h->array[hash];
@@ -101,7 +110,8 @@ char *hashmap_getValue(hashmap *h, const char *key)
 	return NULL;
 }
 
-void hashmap_removeKey(hashmap *h, const char *key)
+void
+hashmap_removeKey(hashmap *h, const char *key)
 {
 	unsigned int hash = get_hash(h->size, key);
 	kv *current = h->array[hash];

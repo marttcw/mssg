@@ -5,7 +5,7 @@
 #include <string.h>
 
 #define ALLOC_SIZE (16)
-#define ALLOC_SIZE_VAR (128)
+#define ALLOC_SIZE_HM (16)
 #define ALLOC_SIZE_SUB (320)
 #define ALLOC_SIZE_LINE (1024)
 #define ALLOC_SIZE_FILE (16)
@@ -65,14 +65,15 @@ state_new(void)
 	s->prev = '%';
 	s->variable = calloc(ALLOC_SIZE_SUB, sizeof(char));
 	s->var_i = 0;
-	s->var_l_m = 0;
-	s->variables_list = calloc(ALLOC_SIZE_VAR, sizeof(var_info));
+	s->variables_hm = hashmap_new(ALLOC_SIZE_HM);
+/*
 	for (int i=0; i < ALLOC_SIZE_VAR; ++i) {
 		s->variables_list[i].name = calloc(ALLOC_SIZE_SUB, sizeof(char));
 		s->variables_list[i].value = calloc(ALLOC_SIZE_SUB, sizeof(char));
 		s->variables_list[i].type = NONE;
 		s->variables_list[i].flag = LOCAL;
 	}
+*/
 	s->li_max = ALLOC_SIZE_LINE;
 	s->line = calloc(s->li_max, sizeof(char));
 	s->li = 0;
@@ -93,11 +94,7 @@ state_destroy(state *s)
 		fclose(s->fp_o);
 	}
 	free(s->line);
-	for (unsigned int i=0; i < ALLOC_SIZE_VAR; ++i) {
-		free(s->variables_list[i].name);
-		free(s->variables_list[i].value);
-	}
-	free(s->variables_list);
+	hashmap_destroy(s->variables_hm);
 	free(s->variable);
 	for (unsigned int i=0; i < ALLOC_SIZE; ++i) {
 		free(s->keywords_list[i]);
@@ -603,21 +600,6 @@ state_generate(state *s)
 			printf("state_level_down_close return < 0\n");
 #endif
 			break;
-		}
-	}
-
-	return 0;
-}
-
-// Temporary solution, a hash map should not need this
-int
-state_generate_cleanup(state *s)
-{
-	for (unsigned int i=0; i < s->var_l_m; ++i) {
-		if (s->variables_list[i].flag == LOCAL) {
-			s->variables_list[i].name[0] = '\0';
-			s->variables_list[i].value[0] = '\0';
-			s->variables_list[i].type = NONE;
 		}
 	}
 

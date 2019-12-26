@@ -69,23 +69,17 @@ template_variable_add(state *s, int argc, char **argv, int flag)
 	printf("template_variable_add\n");
 #endif
 
-	unsigned int len = strlen(argv[2]);
+	var_info *new_vi = calloc(1, sizeof(var_info));
+	new_vi->value = calloc(strlen(argv[2]), sizeof(char));
 
-	// Reallocates more memory if needed
-	if (len > 320) {
-		s->variables_list[s->var_l_m].value = realloc(s->variables_list[s->var_l_m].value, (len + 8) * sizeof(char));
-	}
-
-	strcpy(s->variables_list[s->var_l_m].name, argv[1]);
-	strcpy(s->variables_list[s->var_l_m].value, argv[2]);
-	s->variables_list[s->var_l_m].type = STR;
-
+	strcpy(new_vi->value, argv[2]);
+	new_vi->type = STR;
 	// If it is a configuration file - GLOBAL ensures it get kept after file scope out
 	if (s->fpsc_l[s->fp_l_level].type == 1) {
-		s->variables_list[s->var_l_m].flag = GLOBAL;
+		new_vi->flag = GLOBAL;
 	}
 
-	++s->var_l_m;
+	hashmap_setValue(s->variables_hm, argv[1], new_vi, sizeof(var_info));
 
 	if (flag == VARADD_STR) {
 		s->fpsc_l[s->fp_l_level].sc.current_state = COPY;
@@ -195,12 +189,13 @@ template_keywords_list(state *s)
 int
 template_variable(state *s)
 {
-	for (unsigned int i=0; i < s->var_l_m; ++i) {
-		if (!strcmp(s->variables_list[i].name, s->variable)) {
-			fprintf(s->fp_o, "%s", s->variables_list[i].value);
-			return 0;
-		}
+	var_info *vi = hashmap_getValue(s->variables_hm, s->variable);
+
+	if (vi != NULL) {
+		fprintf(s->fp_o, "%s", vi->value);
+		return 0;
 	}
+
 	fprintf(stderr, "'%s' (%d): Variable: '%s' not found: Mis-spelling or not defined before usage\n"
 			, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line, s->variable);
 

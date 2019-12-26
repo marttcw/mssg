@@ -11,8 +11,8 @@ A lightweight and fast static site generator that have simple templating functio
 * [libcmark](https://github.com/commonmark/cmark) - commonmark - Converts commonmark/markdown files to HTML
 
 ## TODO
-* Templating
-* Hashmap implementation
+* Templating - Doing
+* Hashmap implementation - Done
 * Static blogging feature
   * `blog post` - Create a new blog post
   * `blog edit 20190921_01` - Edit a blog post

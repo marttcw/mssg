@@ -3,7 +3,7 @@
 
 typedef struct kv {
 	char *key;
-	char *value;
+	void *value;
 	struct kv *next;
 } kv;
 
@@ -15,8 +15,8 @@ typedef struct {
 hashmap *hashmap_new(const unsigned int size);
 void hashmap_destroy(hashmap *h);
 
-void hashmap_setValue(hashmap *h, const char *key, const char *value);
-char *hashmap_getValue(hashmap *h, const char *key);
+void hashmap_setValue(hashmap *h, const char *key, const void *value, const unsigned long size);
+void *hashmap_getValue(hashmap *h, const char *key);
 void hashmap_removeKey(hashmap *h, const char *key);
 
 #endif /* HASHMAP_H */

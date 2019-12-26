@@ -3,13 +3,14 @@
 
 #include <stdio.h>
 
+#include "hashmap.h"
+
 enum e_states{ STATE_NONE, COPY, DET_SPEC, SPEC, VAR, AFT_SPEC, BLOCK };
 enum e_states_spec{ IN, OUT };
 enum e_var_type{ NONE, INT, STR, CONTENT };
 enum e_var_flag{ GLOBAL, LOCAL };
 
 typedef struct {
-	char *name;
 	char *value;
 	enum e_var_type type;
 	enum e_var_flag flag;
@@ -47,9 +48,8 @@ typedef struct {
 	char *variable;
 	unsigned int var_i;
 
-	// Variables list
-	var_info *variables_list;
-	unsigned int var_l_m;
+	// Variables hashmap
+	hashmap *variables_hm;
 
 	// List of files and its associated configuration
 	fp_sc *fpsc_l;
@@ -72,6 +72,5 @@ int state_generate(state *s);
 int state_level_up(state *s);
 int state_level_down(state *s);
 int state_config(state *s, const char *filepath);
-int state_generate_cleanup(state *s);
 
 #endif /* STATES_H */
