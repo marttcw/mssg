@@ -16,6 +16,17 @@ print_help(void)
 	printf("mssg HELP\n\n"
 			"init    Initialise a website\n"
 			"build   Build the website\n"
+			"blog    Manage your blog\n"
+			"  new     Make a new post\n"
+			"              Parameters: YYYY-MM-DD \"Blog title\"\n"
+			"           or only today: \"Blog title\"\n"
+			"  edit    Edit a post\n"
+			"            Parameters: YYYY-MM-DD \"Blog title\"\n"
+			/*
+			"  list    List posts\n"
+			"  delete  Delete a post\n"
+			"            Parameters: YYYY-MM-DD \"Blog title\"\n"
+			*/
 			"\n"
 			"help    Print this help message\n"
 			"version Print the program version\n"
