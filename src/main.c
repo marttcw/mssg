@@ -57,12 +57,19 @@ main(int argc, char **argv)
 		} else if (!strcmp(argv[1], "version")) {
 			print_version();
 		} else if (!strcmp(argv[1], "blog")) {
-			if (argc > 3) {
-				blog_new(argv[2], argv[3]);
-			} else if (argc > 2) {
-				blog_new("", argv[2]);
+			if (!strcmp(argv[2], "new")) {
+				if (argc > 4) {
+					blog_new(argv[3], argv[4]);
+				} else if (argc > 3) {
+					blog_new("", argv[3]);
+				} else {
+					fprintf(stderr, "Either for example: mssg blog new \"Hello post\" or mssg blog new YYYY-MM-DD \"Hello post\"\n");
+					ret = EXIT_FAILURE;
+				}
+			} else if (!strcmp(argv[2], "edit")) {
+				blog_edit(argv[3], argv[4]);
 			} else {
-				fprintf(stderr, "Either for example: mssg blog \"Hello post\" or mssg blog YYYY-MM-DD \"Hello post\"\n");
+				fprintf(stderr, "blog: parameter not found: usage: mssg blog {new, edit}\n");
 				ret = EXIT_FAILURE;
 			}
 		} else {

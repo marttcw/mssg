@@ -13,6 +13,29 @@
 #define ALLOC_FILES (2560)
 #define PATH_SIZE (1024)
 
+int
+isblog(const char *path)
+{
+	char *tokpath = calloc(strlen(path) + 1, sizeof(char));
+	char *token = NULL;
+	char delim[] = "/";
+
+	strcpy(tokpath, path);
+
+	token = strtok(tokpath, delim);
+	token = strtok(NULL, delim);
+	if (!strcmp(token, "blog")) {
+		token = strtok(NULL, delim);
+		if (strcmp(token, "index.html")) {
+			free(tokpath);
+			return 1;
+		}
+	}
+
+	free(tokpath);
+	return 0;
+}
+
 char *
 path_omit_name(const char *path)
 {
@@ -169,7 +192,7 @@ files_directory(files *f, const char *base_dirpath, const char *dirpath, int typ
 int
 files_build(files *f, const char *startpath)
 {
-	int type_loop = 1;
+	int type_loop = 2;
 	unsigned int i;
 	state *s = state_new();
 
@@ -200,7 +223,15 @@ files_build(files *f, const char *startpath)
 		}
 
 		switch (type_loop) {
+		case 2:
+			// index all blog posts
+			if (f->fil[i].make_path != NULL && isblog(f->fil[i].make_path)) {
+				// TODO
+				printf("blog: '%s'\n", f->fil[i].path_relative);
+			}
+			break;
 		case 1:
+			// Read configuration files
 			if (f->fil[i].type == 1) {
 #ifdef DEBUG
 				printf("file_read config: \"%s\"\n", f->fil[i].path_relative);
@@ -209,6 +240,7 @@ files_build(files *f, const char *startpath)
 			}
 			break;
 		case 0:
+			// Read HTML files
 			if (f->fil[i].make_path != NULL) {
 #ifdef DEBUG
 				printf("file_read html: \"%s\" \"%s\"\n", f->fil[i].make_path, f->fil[i].path_relative);

@@ -13,17 +13,18 @@ A lightweight and fast static site generator that have simple templating functio
 ## TODO
 * Templating - Doing
 * Hashmap implementation - Done
-* Static blogging feature
-  * `blog post` - Create a new blog post
-  * `blog edit 20190921_01` - Edit a blog post
+* Static blogging feature - Doing
+  * `blog new test` - Create a new blog post - Done
+  * `blog edit 2020-05-05 test` - Edit a blog post - Done
   * `blog list` - List your posts
   * `blog delete 20190921_01` - Delete a blog post
+  * Templating - blog list - Doing
 * Translated page version
 * Gallery feature
   * Thumbnail generator
 
 ## Changelogs
-### 2019-12-25: v0.0.1
+### 2019-12-26: v0.0.1
 * **Not released yet**
 * Files templating `base and content` works EX: `{% base src/dir/foo.html %}`
 * Text variables and placements EX: `{% string foo "hello world" %}` and `{{ foo }}`
@@ -31,4 +32,6 @@ A lightweight and fast static site generator that have simple templating functio
 * Build via files with `index.` in it
 * Link file EX: `{% link src/dir/style.css %}`
 * Configuration file, uses same options as files templating
+* Blog new and edit
+  * config: EX: `blog editor nvim`
 
