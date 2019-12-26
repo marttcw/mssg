@@ -5,6 +5,7 @@
 
 #include "states.h"
 #include "files.h"
+#include "blog.h"
 
 #define VERSION "v0.0.1"
 //#define DEV_BUILD
@@ -55,6 +56,15 @@ main(int argc, char **argv)
 			print_help();
 		} else if (!strcmp(argv[1], "version")) {
 			print_version();
+		} else if (!strcmp(argv[1], "blog")) {
+			if (argc > 3) {
+				blog_new(argv[2], argv[3]);
+			} else if (argc > 2) {
+				blog_new("", argv[2]);
+			} else {
+				fprintf(stderr, "Either for example: mssg blog \"Hello post\" or mssg blog YYYY-MM-DD \"Hello post\"\n");
+				ret = EXIT_FAILURE;
+			}
 		} else {
 			fprintf(stderr, "Paramter unknown.\n");
 			print_help();

@@ -14,6 +14,8 @@ src = [
   , './src/template.c'
   , './src/files.c'
   , './src/hashmap.c'
+  , './src/blog.c'
+  , './src/extra.c'
 ]
 
 executable('mssg'
