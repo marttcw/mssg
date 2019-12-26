@@ -128,6 +128,17 @@ template_link(state *s, int argc, char **argv, int flag)
 	return 0;
 }
 
+int
+template_none(state *s, int argc, char **argv, int flag)
+{
+	(void)(s);
+	(void)(argc);
+	(void)(argv);
+	(void)(flag);
+
+	return 0;
+}
+
 void
 print_keywords_list(state *s)
 {
@@ -163,6 +174,7 @@ template_keywords_list(state *s)
 		{"content",	&template_content,	CONTENTS},	// {% content src/dir/foo.html %}
 		{"link",	&template_link, 	LINK},		// {% link src/dir/foo.css %}
 		{"block",	&template_variable_add,	VARADD_BLOCK},	// {% block foo %} ... {% endblock %}
+		{"blog",	&template_none,		-1},		// blog - config file only
 		{NULL, 		NULL,			-2}
 	};
 

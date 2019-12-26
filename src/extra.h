@@ -1,8 +1,8 @@
 #ifndef EXTRA_H
 #define EXTRA_H
 
-#include <fcntl.h>
-int m_mkdir(char *dirpath, mode_t mode);
+#include "extra/m_mkdir.h"
+#include "extra/date.h"
 
 #endif /* EXTRA_H */
 

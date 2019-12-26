@@ -15,7 +15,8 @@ src = [
   , './src/files.c'
   , './src/hashmap.c'
   , './src/blog.c'
-  , './src/extra.c'
+  , './src/extra/m_mkdir.c'
+  , './src/extra/date.c'
 ]
 
 executable('mssg'

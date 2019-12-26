@@ -4,72 +4,82 @@
 
 #include <stdio.h>
 #include <errno.h>
-#include <time.h>
+#include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
-void
-blog_new(const char *date, const char *title)
+char *
+title2path(const char *title)
 {
-	char src_path[36], src_file[52];
-	const unsigned int months[] = {0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-	unsigned int feb_max = 28;
-	unsigned int year, month, day;
+	unsigned int title_len = strlen(title);
+	char *path = calloc(title_len, sizeof(char));
+	unsigned int i;
 
-	// Use current date
-	if (date[0] == '\0') {
-		time_t t = time(NULL);
-		struct tm current = *localtime(&t);
-
-		year = current.tm_year + 1900;
-		month = current.tm_mon + 1;
-		day = current.tm_mday;
-	} else {
-		// Try YYYY-MM-DD format
-		int n = sscanf(date, "%4u-%2u-%2u", &year, &month, &day);
-		if (n < 3) {
-			// Try alternative format: YYYY/MM/DD
-			n = sscanf(date, "%4u/%2u/%2u", &year, &month, &day);
+	for (i = 0; i < title_len; ++i) {
+		switch (title[i]) {
+		case ' ': case '\'': case '/':
+			path[i] = '-';
+			break;
+		default:
+			path[i] = title[i];
 		}
+	}
 
-		if (n < 3) {
-			// Formatting fail
-			fprintf(stderr, "Date format must be YYYY-MM-DD or YYYY/MM/DD\n");
-			return;
-		}
+	return path;
+}
 
-		// Check maximum month boundaries
-		if (month < 1 || month > 12) {
-			fprintf(stderr, "Month cannot be less than 1 or more than 12\n");
-			return;
-		}
+char *
+blog_quick_config(void)
+{
+	char line[512];
+	char *token = NULL;
+	const char delim[] = " ";
+	char *execute = calloc(256, sizeof(char));
 
-		// Check day boundaries
-		if (day < 1 || day > months[month]) {
-			fprintf(stderr, "Day cannot be less than 1 or more than the month (%u) last day (%u)\n", month, months[month]);
-			return;
-		}
+	// Default
+	strcpy(execute, "vim");
 
-		// Check leap year
-		if (month == 2) {
-			if (year % 400 == 0) {
-				feb_max = 29;
-			} else if (year % 100 == 0) {
-				feb_max = 28;
-			} else if (year % 4 == 0) {
-				feb_max = 29;
+	FILE *fp = fopen("config", "r");
+
+	if (fp == NULL) {
+		return execute;
+	}
+
+	while (fgets(line, 512, fp) != NULL) {
+		token = strtok(line, delim);
+		// If first parameter is blog
+		if (!strcmp(token, "blog")) {
+			token = strtok(NULL, delim);
+
+			if (!strcmp(token, "editor")) {
+				token = strtok(NULL, "\n ");
+				strcpy(execute, token);
+				printf("'%s' used for editing\n", execute);
 			} else {
-				feb_max = 28;
-			}
-
-			if (day > feb_max) {
-				fprintf(stderr, "The year %d does not have a leap year\n", year);
-				return;
+				fprintf(stderr, "Error: blog: config: '%s' parameters given not found\n", line);
 			}
 		}
 	}
 
+	fclose(fp);
+
+	return execute;
+}
+
+void
+blog_new(const char *date_string, const char *title)
+{
+	unsigned int src_strlen = 64 + strlen(title);
+	char src_path[src_strlen], src_file[src_strlen + 16];
+	date *d = date_new(date_string);
+
+	if (d == NULL) {
+		// Failed boundaries checking
+		return;
+	}
+
 	// Boundaries checking passed, create source file from it
-	sprintf(src_path, "src/blog/%4d/%02d/%02d", year, month, day);
+	sprintf(src_path, "src/blog/%4d/%02d/%02d/%s", d->year, d->month, d->day, title2path(title));
 	sprintf(src_file, "%s/index.html", src_path);
 
 	if (m_mkdir(src_path, 0777) < 0) {
@@ -84,11 +94,46 @@ blog_new(const char *date, const char *title)
 				"<h1>%s</h1>\n"
 				"<p>%d-%d-%d</p>\n"
 				"Blog template\n"
-				, title, year, month, day);
+				, title, d->year, d->month, d->day);
 
 		fclose(fp);
 	}
 
 	printf("Blog html file created at: '%s'\n", src_file);
+
+	date_destroy(d);
+}
+
+void
+blog_edit(const char *date_string, const char *title)
+{
+	unsigned int src_strlen = 64 + strlen(title);
+	char src_path[src_strlen], src_file[src_strlen + 16], src_edit[src_strlen + 64];
+	char *execute = blog_quick_config();
+	date *d = date_new(date_string);
+
+	if (d == NULL) {
+		// Failed boundaries checking
+		free(execute);
+		return;
+	}
+
+	// Boundaries checking passed, create source file from it
+	sprintf(src_path, "src/blog/%4d/%02d/%02d/%s", d->year, d->month, d->day, title2path(title));
+	sprintf(src_file, "%s/index.html", src_path);
+	sprintf(src_edit, "%s %s", execute, src_file);
+
+	FILE *fp = fopen(src_file, "r");
+	if (fp == NULL) {
+		// Return early, file doesn't exists
+		fprintf(stderr, "Error: Blog file path '%s' does not exists.\n", src_file);
+	} else {
+		// Found, and edit it
+		fclose(fp);
+		system(src_edit);
+	}
+
+	date_destroy(d);
+	free(execute);
 }
 
