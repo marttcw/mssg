@@ -4,3 +4,9 @@
 <p>
 This is the blog
 </p>
+<ul>
+{% list blog "test" "next" "after" %}
+{% for post in blog -1 %}
+<li>{{ post }}</li>
+{% endfor %}
+</ul>

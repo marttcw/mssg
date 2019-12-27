@@ -60,7 +60,8 @@ void
 hashmap_setValue(hashmap *h,
 		const char *key,
 		const void *value,
-		const unsigned long size)
+		const unsigned long size,
+		const int type)
 {
 	unsigned int hash = get_hash(h->size, key);
 	kv *current = h->array[hash];
@@ -69,6 +70,7 @@ hashmap_setValue(hashmap *h,
 		if (!strcmp(current->key, key)) {
 			current->value = realloc(current->value, size);
 			memcpy(current->value, value, size);
+			current->type = type;
 			return;		// Value set, return early 
 		}
 		if (current->next == NULL) {
@@ -92,6 +94,7 @@ hashmap_setValue(hashmap *h,
 	current->next = NULL;
 	strcpy(current->key, key);
 	memcpy(current->value, value, size);
+	current->type = type;
 }
 
 void *
@@ -141,5 +144,21 @@ hashmap_removeKey(hashmap *h, const char *key)
 	}
 
 	// Key not found
+}
+
+int *
+hashmap_getType(hashmap *h, const char *key)
+{
+	unsigned int hash = get_hash(h->size, key);
+	kv *current = h->array[hash];
+
+	for (; current != NULL; current = current->next) {
+		if (!strcmp(current->key, key)) {
+			return &current->type;
+		}
+	}
+
+	// Key not found
+	return NULL;
 }
 
