@@ -12,6 +12,7 @@ A lightweight and fast static site generator that have simple templating functio
 
 ## TODO
 * Templating - Doing
+  * for loop - Doing
 * Hashmap implementation - Done
 * Static blogging feature - Doing
   * `blog new test` - Create a new blog post - Done
