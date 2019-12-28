@@ -35,10 +35,18 @@ template_extends(state *s, int argc, char **argv, int flag)
 	if (argc <= 1) {
 		switch (flag) {
 		case EXTENDS:
-			fprintf(stderr, "Error: Template: extends - need 2 arguments: extends {filepath}");
+			if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+				fprintf(stderr, "Error: '%s' (%u) Template: extends - need 2 arguments: extends {filepath}\n"
+						, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line);
+				s->new_err = 1;
+			}
 			break;
 		case EXTENDS_BASE:
-			fprintf(stderr, "Error: Template: base - need 2 arguments: base {filepath}");
+			if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+				fprintf(stderr, "Error: '%s' (%u) Template: base - need 2 arguments: base {filepath}\n"
+						, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line);
+				s->new_err = 1;
+			}
 			break;
 		}
 		return -1;
@@ -59,13 +67,25 @@ template_variable_add(state *s, int argc, char **argv, int flag)
 		s->fpsc_l[s->fp_l_level].sc.current_state = BLOCK;
 		return 1;	// Do not reset keywords list
 	} else if ((flag == VARADD_BLOCK) && !(argc >= 4 && !strcmp(argv[3], "endblock"))) {
-		fprintf(stderr, "Error: Template: block - need 2 arguments: block {name} then {content} then end with endblock\n");
+		if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+			fprintf(stderr, "Error: '%s' (%u) Template: block - need 2 arguments: block {name} then {content} then end with endblock\n"
+					, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line);
+			s->new_err = 1;
+		}
 		return -2;
 	} else if (flag == VARADD_STR && argc <= 2) {
-		fprintf(stderr, "Error: Template: string - need 3 arguments: string {name} {string}\n");
+		if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+			fprintf(stderr, "Error: '%s' (%u) Template: string - need 3 arguments: string {name} {string}\n"
+					, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line);
+			s->new_err = 1;
+		}
 		return -1;
 	} else if (flag == VARADD_LIST && argc <= 2) {
-		fprintf(stderr, "Error: Template: list - need 3 arguments at least: list {name} {item 0} {item 1}...\n"); 
+		if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+			fprintf(stderr, "Error: '%s' (%u) Template: list - need 3 arguments at least: list {name} {item 0} {item 1}...\n"
+					, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line);
+			s->new_err = 1;
+		}
 		return -3;
 	}
 
@@ -117,7 +137,11 @@ template_content(state *s, int argc, char **argv, int flag)
 {
 	if (flag == CONTENTS) {
 		if (argc <= 1) {
-			fprintf(stderr, "Error: Template: base - need 2 arguments: content {filepath}");
+			if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+				fprintf(stderr, "Error: '%s' (%u) Template: base - need 2 arguments: content {filepath}\n"
+						, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line);
+				s->new_err = 1;
+			}
 			return -1;
 		}
 
@@ -138,7 +162,11 @@ template_link(state *s, int argc, char **argv, int flag)
 	if (argc <= 1) {
 		switch (flag) {
 		case LINK:
-			fprintf(stderr, "Error: Template: link - need 2 arguments: link {filepath}");
+			if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+				fprintf(stderr, "Error: '%s' (%u) Template: link - need 2 arguments: link {filepath}\n"
+						, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line);
+				s->new_err = 1;
+			}
 			break;
 		}
 		return -1;
@@ -181,36 +209,54 @@ template_for(state *s, int argc, char **argv, int flag)
 			strcpy(list, argv[3]);
 			if (argc > 4) {
 				if (sscanf(argv[4], "%d", &range) != 1) {
-					fprintf(stderr, "template: for: range set not a number\n");
+					if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+						fprintf(stderr, "template: for: range set not a number\n");
+						s->new_err = 1;
+					}
 					return -1;
 				}
 			}
 			if (argc > 5) {
 				if (sscanf(argv[5], "%d", &increment) != 1) {
-					fprintf(stderr, "template: for: increment set not a number\n");
+					if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+						fprintf(stderr, "template: for: increment set not a number\n");
+						s->new_err = 1;
+					}
 					return -1;
 				}
 			}
 			if (argc > 6) {
 				if (sscanf(argv[6], "%u", &start) != 1) {
-					fprintf(stderr, "template: for: start set not a positive number\n");
+					if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+						fprintf(stderr, "template: for: start set not a positive number\n");
+						s->new_err = 1;
+					}
 					return -1;
 				}
 			}
 
 			vl = hashmap_getValue(s->variables_hm, list);
 			if (vl == NULL) {
-				fprintf(stderr, "List variable: '%s' not found\n", list);
+				if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+					fprintf(stderr, "List variable: '%s' not found\n", list);
+					s->new_err = 1;
+				}
 				return -1;
 			}
 
 			if (range < 0) {
 				range = vl->size;
 			} else if ((unsigned int) range > vl->size) {
-				fprintf(stderr, "warning: template: for: range out of range: %u > %u | Setting range as range.\n", range, vl->size);
+				if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+					fprintf(stderr, "warning: template: for: range out of range: %u > %u | Setting range as range.\n", range, vl->size);
+					s->new_err = 1;
+				}
 				range = vl->size;
 			} else if (start > vl->size) {
-				fprintf(stderr, "template: for: start out of range: %u > %u\n", start, vl->size);
+				if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+					fprintf(stderr, "template: for: start out of range: %u > %u\n", start, vl->size);
+					s->new_err = 1;
+				}
 				return -1;
 			}
 
@@ -226,7 +272,10 @@ template_for(state *s, int argc, char **argv, int flag)
 			strcpy(vi->value, vl->list[current_index]);
 			hashmap_setValue(s->variables_hm, item, vi, sizeof(var_info), STR);
 		} else {
-			fprintf(stderr, "template: for: must have at least 3 parameters: EX: for item in list (times) (increment)\n");
+			if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+				fprintf(stderr, "template: for: must have at least 3 parameters: EX: for item in list (times) (increment)\n");
+				s->new_err = 1;
+			}
 			return -1;
 		}
 	} else if (flag == FOR_END) {
@@ -244,7 +293,11 @@ template_for(state *s, int argc, char **argv, int flag)
 				fseek(s->fpsc_l[s->fp_l_level].fp, file_position, SEEK_SET);
 			}
 		} else {
-			fprintf(stderr, "for loop have not been set before the endfor.\n");
+			if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+				fprintf(stderr, "'%s' (%u): template: for loop have not been set before the endfor.\n"
+						, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line);
+				s->new_err = 1;
+			}
 			return -2;
 		}
 	}
@@ -317,8 +370,11 @@ template_keywords_list(state *s)
 	}
 
 	// No arguments found
-	fprintf(stderr, "'%s' (%d): Template: '%s' not found: Mis-spelling\n"
-			, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line, s->keywords_list[0]);
+	if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+		fprintf(stderr, "'%s' (%u): Template: '%s' not found: Mis-spelling\n"
+				, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line, s->keywords_list[0]);
+		s->new_err = 1;
+	}
 	return -3;
 }
 
@@ -346,8 +402,11 @@ template_variable(state *s)
 	type = hashmap_getType(s->variables_hm, var_name);
 
 	if (type == NULL) {
-		fprintf(stderr, "'%s' (%d): Variable: '%s' (%s) not found: Mis-spelling or not defined before usage\n"
-				, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line, var_name, s->variable);
+		if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+			fprintf(stderr, "'%s' (%d): Variable: '%s' (%s) not found: Mis-spelling or not defined before usage\n"
+					, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line, var_name, s->variable);
+			s->new_err = 1;
+		}
 		return -1;
 	}
 
@@ -359,11 +418,17 @@ template_variable(state *s)
 		if (index < var->size) {
 			fprintf(s->fp_o, "%s", var->list[index]);
 		} else {
-			fprintf(stderr, "Variable: %s: Index %u is out of range: 0 to %u.\n", var_name, index, var->size);
+			if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+				fprintf(stderr, "Variable: %s: Index %u is out of range: 0 to %u.\n", var_name, index, var->size);
+				s->new_err = 1;
+			}
 			return -3;
 		}
 	} else {
-		fprintf(stderr, "Unsupported type for variable: '%s' | Type: %d\n", var_name, *type);
+		if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+			fprintf(stderr, "Unsupported type for variable: '%s' | Type: %d\n", var_name, *type);
+			s->new_err = 1;
+		}
 		return -2;
 	}
 
