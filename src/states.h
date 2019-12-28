@@ -65,6 +65,13 @@ typedef struct {
 
 	// Output file
 	FILE *fp_o;
+
+	// Errors hashmap
+	hashmap *errors_hm;
+	char *fname_line;
+
+	int *err_int;
+	int new_err;
 } state;
 
 // Initialise/destroyer

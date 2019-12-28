@@ -41,9 +41,13 @@ reset_keywords_list(state *s)
 state *
 state_new(void)
 {
-	state *s = malloc(sizeof(state));
+	state *s = calloc(1, sizeof(state));
 
-	s->fpsc_l = malloc(ALLOC_SIZE * (sizeof(fp_sc)));
+	s->err_int = calloc(1, sizeof(int));
+	*s->err_int = 1;
+	s->new_err = 0;
+	s->fname_line = calloc(1024, sizeof(char));
+	s->fpsc_l = calloc(ALLOC_SIZE, sizeof(fp_sc));
 	for (int i=0; i < ALLOC_SIZE; ++i) {
 		s->fpsc_l[i].sc.current_state = COPY;
 		s->fpsc_l[i].sc.spec_state = OUT;
@@ -66,6 +70,7 @@ state_new(void)
 	s->variable = calloc(ALLOC_SIZE_SUB, sizeof(char));
 	s->var_i = 0;
 	s->variables_hm = hashmap_new(ALLOC_SIZE_HM);
+	s->errors_hm = hashmap_new(ALLOC_SIZE_HM);
 	s->li_max = ALLOC_SIZE_LINE;
 	s->line = calloc(s->li_max, sizeof(char));
 	s->li = 0;
@@ -86,6 +91,7 @@ state_destroy(state *s)
 		fclose(s->fp_o);
 	}
 	free(s->line);
+	hashmap_destroy(s->errors_hm);
 	hashmap_destroy(s->variables_hm);
 	free(s->variable);
 	for (unsigned int i=0; i < ALLOC_SIZE; ++i) {
@@ -94,6 +100,9 @@ state_destroy(state *s)
 	free(s->kci_alloc);
 	free(s->keywords_list);
 	free(s->fpsc_l);
+	free(s->fname_line);
+	free(s->err_int);
+	free(s);
 
 	return 0;
 }
@@ -236,13 +245,16 @@ state_spec_out(state *s, const char *c)
 			// Use line
 			s->keywords_list[s->keyword_i][s->kci] = '\0';
 			++s->keyword_i;	// Offsets
+			sprintf(s->fname_line, "%s_%d",
+					s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line);
 			int template_flag = template_keywords_list(s);
-			switch (template_flag) {
-			case 1:
-				break;
-			default:
+			if (template_flag != 1) {
 				reset_keywords_list(s);
-				break;
+			}
+			// Error occured, add to hashmap to prevent repeated messages
+			if (template_flag < 0 && s->new_err) {
+				hashmap_setValue(s->errors_hm, s->fname_line, s->err_int, sizeof(int), 0);
+				s->new_err = 0;
 			}
 			break;
 		}
@@ -353,25 +365,38 @@ state_var(state *s, const char *c)
 int
 state_aft_spec(state *s, const char *c)
 {
+	int template_flag = 0;
+
+
 	switch (*c) {
 	case '}':
 		switch (s->fpsc_l[s->fp_l_level].sc.previous_state) {
 		case SPEC:	// HTML file
 			s->keywords_list[s->keyword_i][s->kci] = '\0';
-			int template_flag = template_keywords_list(s);
-			switch (template_flag) {
-			case 1:	// Current state already set to BLOCK
-				return 0;
-			default:
+
+			sprintf(s->fname_line, "%s_%d",
+					s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line);
+			template_flag = template_keywords_list(s);
+			if (template_flag != 1) {
 				reset_keywords_list(s);
-				break;
+			}
+			// Error occured, add to hashmap to prevent repeated messages
+			if (template_flag < 0 && s->new_err) {
+				hashmap_setValue(s->errors_hm, s->fname_line, s->err_int, sizeof(int), 0);
+				s->new_err = 0;
 			}
 			break;
 		case VAR:
 			// Null terminate string
 			s->variable[s->var_i] = '\0';
 
-			template_variable(s);
+			sprintf(s->fname_line, "%s_%d",
+					s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line);
+			template_flag = template_variable(s);
+			if (template_flag < 0 && s->new_err) {
+				hashmap_setValue(s->errors_hm, s->fname_line, s->err_int, sizeof(int), 0);
+				s->new_err = 0;
+			}
 
 			// Clear variable
 			s->variable[0] = '\0';
