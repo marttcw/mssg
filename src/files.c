@@ -380,7 +380,7 @@ files_build(files *f, const char *startpath)
 			if (f->fil[i].make_path != NULL && isblog(f->fil[i].make_path)) {
 				sprintf(blog_argv[1], "blog_%04u", blog_index);
 				sprintf(blog_argv[2], "date:%s", blog_pathToDate(f->fil[i].make_path));
-				sprintf(blog_argv[3], "link:%s", make_rel("build", f->fil[i].make_path));
+				sprintf(blog_argv[3], "link:/%s", make_rel("build", f->fil[i].make_path));
 				sprintf(blog_argv[4], "name:%s", blog_pathToName(f->fil[i].make_path));
 
 				state_direct_arg_template(s, blog_argc, blog_argv);
