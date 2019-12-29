@@ -43,6 +43,8 @@ state_new(void)
 {
 	state *s = calloc(1, sizeof(state));
 
+	s->copy_list = NULL;
+	s->copy_list_max = 0;
 	s->err_int = calloc(1, sizeof(int));
 	*s->err_int = 1;
 	s->new_err = 0;
@@ -87,6 +89,12 @@ state_destroy(state *s)
 #ifdef DEBUG
 	printf("state_destroy called\n");
 #endif
+	if (s->copy_list != NULL) {
+		for (unsigned int i=0; i < s->copy_list_max; ++i) {
+			free(s->copy_list[i]);
+		}
+		free(s->copy_list);
+	}
 	if (s->fp_o != NULL) {
 		fclose(s->fp_o);
 	}

@@ -64,4 +64,6 @@ A lightweight and fast static site generator that have simple templating functio
   * config: EX: `blog editor nvim`
   * templating: for loop `#blog`
 * Pointers: EX: `{% string foo $other_foo %}`
+* File copy parameter: Config EX: `copy style.css rss.xml`
+  * Files with those filenames just get a simple copy over to the build equivalent
 

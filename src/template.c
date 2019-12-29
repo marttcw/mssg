@@ -329,6 +329,26 @@ template_for(state *s, int argc, char **argv, int flag)
 }
 
 int
+template_copy(state *s, int argc, char **argv, int flag)
+{
+	(void)(flag);
+
+	// Allocate memory
+	if (s->copy_list == NULL) {
+		s->copy_list = calloc(argc - 1, sizeof(char *));
+	} else {
+		s->copy_list = realloc(s->copy_list, (s->copy_list_max + (argc - 1)) * sizeof(char *));
+	}
+
+	for (int i=1; i < argc; ++i, ++s->copy_list_max) {
+		s->copy_list[s->copy_list_max] = calloc(strlen(argv[i]) + 1, sizeof(char));
+		strcpy(s->copy_list[s->copy_list_max], argv[i]);
+	}
+
+	return 0;
+}
+
+int
 template_none(state *s, int argc, char **argv, int flag)
 {
 	(void)(s);
@@ -378,6 +398,7 @@ template_keywords_list(state *s)
 		{"endfor",	&template_for,		FOR_END},	// {% endfor %}
 		{"list",	&template_variable_add,	VARADD_LIST},	// {% list foo apple banana carrot %}
 		{"dict",	&template_variable_add,	VARADD_DICT},	// {% dict fruit name:apple texture:crunchy %}
+		{"copy",	&template_copy,		-1},		// {% copy style.css rss.xml %}
 		/* Empty templates, configuration file only, these are processed seperately */
 		{"blog",	&template_none,		-1},		// blog - config file only
 		{NULL, 		NULL,			-2}

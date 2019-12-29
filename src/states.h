@@ -78,6 +78,9 @@ typedef struct {
 
 	int *err_int;
 	int new_err;
+
+	char **copy_list;
+	unsigned int copy_list_max;
 } state;
 
 // Initialise/destroyer
