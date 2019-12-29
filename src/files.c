@@ -332,8 +332,10 @@ files_build(files *f, const char *startpath)
 			// Do end of the case
 			switch (type_loop) {
 			case 1:
-				// Blog posts index end of case
-				state_direct_arg_template(s, blog_index + 2, blog_list_argv);
+				if (blog_index > 0) {
+					// Blog posts index end of case
+					state_direct_arg_template(s, blog_index + 2, blog_list_argv);
+				}
 
 				free(blog_argv);
 				free(blog_list_argv);
