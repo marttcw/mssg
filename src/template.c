@@ -130,7 +130,7 @@ template_variable_add(state *s, int argc, char **argv, int flag)
 		var_dict *new_dict = calloc(1, sizeof(var_dict));
 		new_dict->hashmap = hashmap_new(10);
 		for (int i=2; i < argc; ++i) {
-			if (sscanf(argv[i], "%[^:]:%s", key, value) == 2) {
+			if (sscanf(argv[i], "%[^:]:%[^\n]", key, value) == 2) {
 				hashmap_setValue(new_dict->hashmap, key, value, (strlen(value)+1) * sizeof(char), STR);
 			} else {
 				if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
@@ -403,6 +403,45 @@ template_keywords_list(state *s)
 	return -3;
 }
 
+char *
+template_variable_get_value(state *s, const char *var_name, const int *type, const void *index, const int *s_type)
+{
+	(void)(s_type);	// unused
+
+	if (*type == STR) {
+		var_string *var = hashmap_getValue(s->variables_hm, var_name);
+		return var->value;
+	} else if (*type == LIST) {
+		var_list *var = hashmap_getValue(s->variables_hm, var_name);
+		if (*(unsigned int *)index < var->size) {
+			return var->list[*(unsigned int *)index];
+		} else {
+			if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+				fprintf(stderr, "Variable: %s: Index %u is out of range: 0 to %u.\n", var_name, *(unsigned int *)index, var->size);
+				s->new_err = 1;
+			}
+			return NULL;
+		}
+	} else if (*type == DICT) {
+		var_dict *var = hashmap_getValue(s->variables_hm, var_name);
+		char *value = hashmap_getValue(var->hashmap, (char *) index);
+		if (value == NULL) {
+			if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+				fprintf(stderr, "'%s' (%d): Sub variable: '%s' (%s | %s) not found: Mis-spelling or not defined before usage\n"
+						, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line, (char *) index, var_name, s->variable);
+				s->new_err = 1;
+			}
+			return NULL;
+		} else {
+			return value;
+		}
+	} else {
+		fprintf(stderr, "'%s' (%d): Unknown error\n"
+				, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line);
+		return NULL;
+	}
+}
+
 /* Variables templates handling
  * EX: {{ example }} {{ example.sub }} {{ example[x] }}
  */
@@ -410,66 +449,57 @@ int
 template_variable(state *s)
 {
 	int *type = NULL;
-	char var_name[128], sub_name[128];
+	char var_name[256], sub_name[128];
 	int s_type = 0;
 	unsigned int index;
+	char *value = NULL;
+	char var_name_temp[256];
+	strcpy(var_name, s->variable);
 
-	// Test the string
-	if (sscanf(s->variable, "%[^.].%s", var_name, sub_name) == 2) {
-		s_type = 2;	// Dictionary
-	} else if (sscanf(s->variable, "%s[%u]", var_name, &index) == 2) {
-		s_type = 1;	// List
-	} else {
-		s_type = 0;	// String
-		strcpy(var_name, s->variable);
-	}
-
-	type = hashmap_getType(s->variables_hm, var_name);
-
-	if (type == NULL) {
-		if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
-			fprintf(stderr, "'%s' (%d): Variable: '%s' (%s) not found: Mis-spelling or not defined before usage\n"
-					, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line, var_name, s->variable);
-			s->new_err = 1;
-		}
-		return -1;
-	}
-
-	if (*type == STR && s_type == 0) {
-		var_string *var = hashmap_getValue(s->variables_hm, var_name);
-		fprintf(s->fp_o, "%s", var->value);
-	} else if (*type == LIST && s_type == 1) {
-		var_list *var = hashmap_getValue(s->variables_hm, var_name);
-		if (index < var->size) {
-			fprintf(s->fp_o, "%s", var->list[index]);
+	do {
+		// Test the string
+		if (sscanf(var_name, "%[^.].%s", var_name_temp, sub_name) == 2) {
+			s_type = 2;	// Dictionary
+			strcpy(var_name, var_name_temp);
+		} else if (sscanf(var_name, "%[^[][%u]", var_name_temp, &index) == 2) {
+			s_type = 1;	// List
+			strcpy(var_name, var_name_temp);
 		} else {
-			if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
-				fprintf(stderr, "Variable: %s: Index %u is out of range: 0 to %u.\n", var_name, index, var->size);
-				s->new_err = 1;
-			}
-			return -3;
+			s_type = 0;	// String or pointer
 		}
-	} else if (*type == DICT && s_type == 2) {
-		var_dict *var = hashmap_getValue(s->variables_hm, var_name);
-		char *value = hashmap_getValue(var->hashmap, sub_name);
-		if (value == NULL) {
+
+		type = hashmap_getType(s->variables_hm, var_name);
+
+		if (type == NULL) {
 			if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
-				fprintf(stderr, "'%s' (%d): Sub variable: '%s' (%s | %s) not found: Mis-spelling or not defined before usage\n"
-						, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line, sub_name, var_name, s->variable);
+				fprintf(stderr, "'%s' (%d): Variable: '%s' (%s) not found: Mis-spelling or not defined before usage\n"
+						, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line, var_name, s->variable);
 				s->new_err = 1;
 			}
 			return -1;
-		} else {
-			fprintf(s->fp_o, "%s", value);
 		}
-	} else {
-		if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
-			fprintf(stderr, "Unsupported type for variable: '%s' | Type: %d\n", var_name, *type);
-			s->new_err = 1;
-		}
-		return -2;
-	}
 
+		if (*type == STR) {
+			value = template_variable_get_value(s, var_name, type, NULL, &s_type);
+		} else if (*type == LIST) {
+			value = template_variable_get_value(s, var_name, type, &index, &s_type);
+		} else if (*type == DICT) {
+			value = template_variable_get_value(s, var_name, type, &sub_name, &s_type);
+		} else {
+			if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+				fprintf(stderr, "Unsupported type for variable: '%s' | Type: %d\n", var_name, *type);
+				s->new_err = 1;
+			}
+			return -2;
+		}
+
+		if (value == NULL) {
+			return -1;
+		}
+
+	} while (sscanf(value, "$%s", var_name) == 1);
+
+	fprintf(s->fp_o, "%s", value);
 	return 0;
 }
 

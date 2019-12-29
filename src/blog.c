@@ -17,7 +17,9 @@ title2path(const char *title)
 
 	for (i = 0; i < title_len; ++i) {
 		switch (title[i]) {
-		case ' ': case '\'': case '/':
+		case '/':
+			break;
+		case ' ':
 			path[i] = '-';
 			break;
 		default:

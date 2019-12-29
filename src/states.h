@@ -7,7 +7,7 @@
 
 enum e_states{ STATE_NONE, COPY, DET_SPEC, SPEC, VAR, AFT_SPEC, BLOCK };
 enum e_states_spec{ IN, OUT };
-enum e_var_type{ NONE = 0, INT = 1, STR = 2, CONTENT = 3, LIST =4, DICT = 5 };
+enum e_var_type{ NONE = 0, INT = 1, STR = 2, CONTENT = 3, LIST = 4, DICT = 5 };
 enum e_var_flag{ GLOBAL, LOCAL };
 
 typedef struct {
@@ -92,5 +92,6 @@ int state_generate(state *s);
 int state_level_up(state *s);
 int state_level_down(state *s);
 int state_config(state *s, const char *filepath);
+int state_direct_arg_template(state *s, const int argc, char **argv);
 
 #endif /* STATES_H */

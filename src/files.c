@@ -9,9 +9,58 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #define ALLOC_FILES (2560)
 #define PATH_SIZE (1024)
+
+char *
+blog_pathToDate(const char *path)
+{
+	char *ret_date = NULL;
+	int year, month, day;
+	unsigned int digit_i;
+
+	for (digit_i=0; digit_i < strlen(path); ++digit_i) {
+		if (isdigit(path[digit_i])) {
+			break;
+		}
+	}
+
+	if (sscanf(path+(digit_i), "%d%*c%d%*c%d%*[^\n]", &year, &month, &day) == 3) {
+		ret_date = calloc(64, sizeof(char));
+		sprintf(ret_date, "%d-%d-%d", year, month, day);
+		return ret_date;
+	}
+
+	return NULL;
+}
+
+char *
+blog_pathToName(const char *path)
+{
+	char *temp_title = calloc(strlen(path), sizeof(char));
+	char *title = calloc(strlen(path), sizeof(char));
+	unsigned int j = 0;
+
+	for (unsigned int i=0; i < strlen(path); ++i) {
+		switch (path[i]) {
+		case '/':
+			temp_title[j] = '\0';
+			strcpy(title, temp_title);
+			j = 0;
+			break;
+		case '-':
+			temp_title[j++] = ' ';
+			break;
+		default:
+			temp_title[j++] = path[i];
+		}
+	}
+
+	free(temp_title);
+	return title;
+}
 
 int
 isblog(const char *path)
@@ -213,10 +262,33 @@ files_build(files *f, const char *startpath)
 		printf("Build directory created\n");
 	}
 
+	unsigned int blog_argc = 5;
+	unsigned int blog_index = 0;
+	char **blog_argv = calloc(blog_argc, sizeof(char *));
+	unsigned int bla_top = 10;
+	char **blog_list_argv = calloc(bla_top + 2, sizeof(char *));
+	for (unsigned int i=0; i < blog_argc; ++i) {
+		blog_argv[i] = calloc(256, sizeof(char));
+	}
+	for (unsigned int i=0; i < bla_top; ++i) {
+		blog_list_argv[i] = calloc(256, sizeof(char));
+	}
+	strcpy(blog_argv[0], "dict");
+	strcpy(blog_list_argv[0], "list");
+	strcpy(blog_list_argv[1], "#blog");
+
 	i = 0;
 	while (type_loop >= 0) {
 		// If i is out of range, reset i and shift down type
 		if (i >= f->fii) {
+			// Do end of the case
+			switch (type_loop) {
+			case 2:
+				state_direct_arg_template(s, blog_index + 2, blog_list_argv);
+
+				free(blog_argv);
+				free(blog_list_argv);
+			}
 			--type_loop;
 			i = 0;
 			continue;
@@ -226,8 +298,19 @@ files_build(files *f, const char *startpath)
 		case 2:
 			// index all blog posts
 			if (f->fil[i].make_path != NULL && isblog(f->fil[i].make_path)) {
-				// TODO
-				printf("blog: '%s'\n", f->fil[i].path_relative);
+				sprintf(blog_argv[1], "blog_%04u", blog_index);
+				sprintf(blog_argv[2], "date:%s", blog_pathToDate(f->fil[i].make_path));
+				sprintf(blog_argv[3], "link:%s", make_rel("build", f->fil[i].make_path));
+				sprintf(blog_argv[4], "name:%s", blog_pathToName(f->fil[i].make_path));
+
+				state_direct_arg_template(s, blog_argc, blog_argv);
+				// Reallocate more space for blog_list_argv
+				if (blog_index == (bla_top - 3)) {
+					bla_top *= 1.5;
+					blog_list_argv = realloc(blog_list_argv, (bla_top + 2) * sizeof(char *));
+				}
+				sprintf(blog_list_argv[blog_index + 2], "$%s", blog_argv[1]);
+				++blog_index;
 			}
 			break;
 		case 1:
