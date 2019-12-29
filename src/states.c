@@ -623,3 +623,15 @@ state_generate(state *s)
 	return 0;
 }
 
+int state_direct_arg_template(state *s, const int argc, char **argv)
+{
+	reset_keywords_list(s);
+	s->keyword_i = argc;
+	for (int i=0; i < argc; ++i) {
+		strcpy(s->keywords_list[i], argv[i]);
+	}
+	int ret_num = template_keywords_list(s);
+	reset_keywords_list(s);
+	return ret_num;
+}
+

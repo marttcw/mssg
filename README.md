@@ -17,22 +17,25 @@ A lightweight and fast static site generator that have simple templating functio
   * dictionary
 * for loop list
 * extends/base of another file
+* `{% for post in #blog -1 %}`
+  * `{{ post.date }}`, `{{ post.title }}`, `{{ post.link }}`
 
 ## TODO
 * Templating - Doing
-  * for loop - Doing
+  * for loop - Done?
 * Hashmap implementation - Done
 * Static blogging feature - Doing
   * `blog new test` - Create a new blog post - Done
   * `blog edit 2020-05-05 test` - Edit a blog post - Done
-  * `blog list` - List your posts
-  * `blog delete 20190921_01` - Delete a blog post
-  * Templating - blog list - Doing
+  * `blog list` - List your posts - Doing
+  * `blog delete 20190921_01` - Delete a blog post - Doing
+  * Templating - blog list - Done
 * Translated page version
 * Gallery feature
   * Thumbnail generator
-* For loop a list of strings - Done, but will change a bit
-* For loop a list of dictionary - Doing
+* For loop a list of strings - Done
+* For loop a list of dictionary - Done
+* Point to another variable (EX: `{% list fruit $apple $banana $other %}`) - Done? Need further testing
 
 ## Changelogs
 ### 2019-12-29: v0.0.1
@@ -45,4 +48,6 @@ A lightweight and fast static site generator that have simple templating functio
 * Configuration file, uses same options as files templating
 * Blog new and edit
   * config: EX: `blog editor nvim`
+  * templating: for loop `#blog`
+* Pointers: EX: `{% string foo $other_foo %}`
 
