@@ -13,6 +13,31 @@
 
 #define ALLOC_FILES (2560)
 #define PATH_SIZE (1024)
+#define COPY_BUFFER (1024)
+
+int
+file_copy(const char *dest, const char *src)
+{
+	char buffer[COPY_BUFFER];
+	size_t bytes;
+	FILE *fp_src = fopen(src, "rb");
+	FILE *fp_dest = fopen(dest, "wb");
+
+	if (fp_src == NULL || fp_dest == NULL) {
+		fprintf(stderr, "Error: Copy error: Cannot open either '%s' or/and '%s'\n", src, dest);
+		return -1;
+	}
+
+	// Copying the file over to the destination
+	while (0 < (bytes = fread(buffer, 1, sizeof(buffer), fp_src))) {
+		fwrite(buffer, 1, bytes, fp_dest);
+	}
+
+	fclose(fp_dest);
+	fclose(fp_src);
+
+	return 0;
+}
 
 char *
 blog_pathToDate(const char *path)
@@ -121,7 +146,7 @@ make_rel(const char *base_path, const char *full_path)
 }
 
 char *
-make_build(const char *src_path)
+make_build(const char *src_path, const int type)
 {
 	int i;
 	char *build_path = calloc(PATH_SIZE, sizeof(char));
@@ -131,7 +156,7 @@ make_build(const char *src_path)
 	}
 
 	// Return NULL if not for build_path
-	if ((i < 4) || (strstr(src_path, "index.") == NULL)) {
+	if ((i < 4) || (type == 0 && (strstr(src_path, "index.") == NULL))) {
 		free(build_path);
 		return NULL;
 	}
@@ -139,6 +164,28 @@ make_build(const char *src_path)
 	sprintf(build_path, "build/%s", src_path+(i));
 
 	return build_path;
+}
+
+char *
+make_fname(const char *path)
+{
+	char *fname = calloc(PATH_SIZE, sizeof(char));
+	unsigned int j = 0;
+
+	for (unsigned int i=0; i < strlen(path); ++i) {
+		switch (path[i]) {
+		case '/':
+			fname[j] = '\0';
+			j = 0;
+			break;
+		default:
+			fname[j++] = path[i];
+		}
+	}
+
+	fname[j] = '\0';
+
+	return fname;
 }
 
 files *
@@ -241,7 +288,7 @@ files_directory(files *f, const char *base_dirpath, const char *dirpath, int typ
 int
 files_build(files *f, const char *startpath)
 {
-	int type_loop = 2;
+	int type_loop = 3;
 	unsigned int i;
 	state *s = state_new();
 
@@ -249,7 +296,7 @@ files_build(files *f, const char *startpath)
 
 	// Make the make paths (if available)
 	for (i = 0; i < f->fii; ++i) {
-		f->fil[i].make_path = make_build(f->fil[i].path_relative);
+		f->fil[i].make_path = make_build(f->fil[i].path_relative, 0);
 	}
 
 	// Try to make the directory
@@ -276,6 +323,7 @@ files_build(files *f, const char *startpath)
 	strcpy(blog_argv[0], "dict");
 	strcpy(blog_list_argv[0], "list");
 	strcpy(blog_list_argv[1], "#blog");
+	char *fname = NULL;
 
 	i = 0;
 	while (type_loop >= 0) {
@@ -283,7 +331,8 @@ files_build(files *f, const char *startpath)
 		if (i >= f->fii) {
 			// Do end of the case
 			switch (type_loop) {
-			case 2:
+			case 1:
+				// Blog posts index end of case
 				state_direct_arg_template(s, blog_index + 2, blog_list_argv);
 
 				free(blog_argv);
@@ -295,7 +344,36 @@ files_build(files *f, const char *startpath)
 		}
 
 		switch (type_loop) {
+		case 3:
+			// Read configuration files
+			if (f->fil[i].type == 1) {
+#ifdef DEBUG
+				printf("file_read config: \"%s\"\n", f->fil[i].path_relative);
+#endif
+				file_read(&f->fil[i], s);
+			}
+			break;
 		case 2:
+			if (s->copy_list_max > 0) {
+				// File copy
+				// TODO
+				fname = make_fname(f->fil[i].path_relative);
+
+				for (unsigned int k=0; k < s->copy_list_max; ++k) {
+					if (!strcmp(fname, s->copy_list[k])) {
+						char *build_path = make_build(f->fil[i].path_relative, 1);
+						char *src_path = f->fil[i].path_relative;
+
+						file_copy(build_path, src_path);
+
+						free(build_path);
+					}
+				}
+
+				free(fname);
+			}
+			break;
+		case 1:
 			// index all blog posts
 			if (f->fil[i].make_path != NULL && isblog(f->fil[i].make_path)) {
 				sprintf(blog_argv[1], "blog_%04u", blog_index);
@@ -311,15 +389,6 @@ files_build(files *f, const char *startpath)
 				}
 				sprintf(blog_list_argv[blog_index + 2], "$%s", blog_argv[1]);
 				++blog_index;
-			}
-			break;
-		case 1:
-			// Read configuration files
-			if (f->fil[i].type == 1) {
-#ifdef DEBUG
-				printf("file_read config: \"%s\"\n", f->fil[i].path_relative);
-#endif
-				file_read(&f->fil[i], s);
 			}
 			break;
 		case 0:
