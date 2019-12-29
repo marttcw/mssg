@@ -10,6 +10,14 @@ A lightweight and fast static site generator that have simple templating functio
 * [ImageMagick](https://imagemagick.org/api/resize.php#ThumbnailImage) - MagickCore API - Used for making thumbnail for the gallery and resizing images in general
 * [libcmark](https://github.com/commonmark/cmark) - commonmark - Converts commonmark/markdown files to HTML
 
+## Templating Features
+* Variables types
+  * string
+  * list
+  * dictionary
+* for loop list
+* extends/base of another file
+
 ## TODO
 * Templating - Doing
   * for loop - Doing
@@ -23,9 +31,11 @@ A lightweight and fast static site generator that have simple templating functio
 * Translated page version
 * Gallery feature
   * Thumbnail generator
+* For loop a list of strings - Done, but will change a bit
+* For loop a list of dictionary - Doing
 
 ## Changelogs
-### 2019-12-26: v0.0.1
+### 2019-12-29: v0.0.1
 * **Not released yet**
 * Files templating `base and content` works EX: `{% base src/dir/foo.html %}`
 * Text variables and placements EX: `{% string foo "hello world" %}` and `{{ foo }}`
