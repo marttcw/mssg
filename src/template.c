@@ -22,6 +22,7 @@ enum flags {
 	VARADD_STR = 0,
 	VARADD_BLOCK = 1,
 	VARADD_LIST = 2,
+	VARADD_DICT = 3,
 	FOR = 0,
 	FOR_END = 1
 };
@@ -94,7 +95,7 @@ template_variable_add(state *s, int argc, char **argv, int flag)
 #endif
 
 	if (flag == VARADD_STR || flag == VARADD_BLOCK) {
-		var_info *new_vi = calloc(1, sizeof(var_info));
+		var_string *new_vi = calloc(1, sizeof(var_string));
 		new_vi->value = calloc(strlen(argv[2]), sizeof(char));
 
 		strcpy(new_vi->value, argv[2]);
@@ -106,7 +107,7 @@ template_variable_add(state *s, int argc, char **argv, int flag)
 			new_vi->flag = LOCAL;
 		}
 
-		hashmap_setValue(s->variables_hm, argv[1], new_vi, sizeof(var_info), STR);
+		hashmap_setValue(s->variables_hm, argv[1], new_vi, sizeof(var_string), STR);
 	} else if (flag == VARADD_LIST) {
 		var_list *new_vl = calloc(1, sizeof(var_list));
 		new_vl->size = argc - 2;
@@ -123,9 +124,37 @@ template_variable_add(state *s, int argc, char **argv, int flag)
 		}
 
 		hashmap_setValue(s->variables_hm, argv[1], new_vl, sizeof(var_list), LIST);
+	} else if (flag == VARADD_DICT) {
+		char key[256];
+		char value[512];
+		var_dict *new_dict = calloc(1, sizeof(var_dict));
+		new_dict->hashmap = hashmap_new(10);
+		for (int i=2; i < argc; ++i) {
+			if (sscanf(argv[i], "%[^:]:%s", key, value) == 2) {
+				hashmap_setValue(new_dict->hashmap, key, value, (strlen(value)+1) * sizeof(char), STR);
+			} else {
+				if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+					fprintf(stderr, "Error: '%s' (%u) Template: Dictionary: Cannot get key value from '%s'.\n"
+							, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line, argv[i]);
+					s->new_err = 1;
+				}
+				hashmap_destroy(new_dict->hashmap);
+				free(new_dict);
+				return -1;
+			}
+		}
+
+		// If it is a configuration file - GLOBAL ensures it get kept after file scope out
+		if (s->fpsc_l[s->fp_l_level].type == 1) {
+			new_dict->flag = GLOBAL;
+		} else {
+			new_dict->flag = LOCAL;
+		}
+
+		hashmap_setValue(s->variables_hm, argv[1], new_dict, sizeof(var_dict), DICT);
 	}
 
-	if (flag == VARADD_STR || flag == VARADD_LIST) {
+	if (flag == VARADD_STR || flag == VARADD_LIST || flag == VARADD_DICT) {
 		s->fpsc_l[s->fp_l_level].sc.current_state = COPY;
 	}
 
@@ -191,7 +220,7 @@ template_for(state *s, int argc, char **argv, int flag)
 	static int range, increment, current_index;
 	static char *item, *list;
 	static var_list *vl;
-	static var_info *vi;
+	static var_string *vi;
 
 	if (flag == FOR) {
 		// Set defaults
@@ -207,32 +236,26 @@ template_for(state *s, int argc, char **argv, int flag)
 		if (argc > 3) {
 			strcpy(item, argv[1]);
 			strcpy(list, argv[3]);
-			if (argc > 4) {
-				if (sscanf(argv[4], "%d", &range) != 1) {
-					if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
-						fprintf(stderr, "template: for: range set not a number\n");
-						s->new_err = 1;
-					}
-					return -1;
+			if ((argc > 4) && (sscanf(argv[4], "%d", &range) != 1)) {
+				if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+					fprintf(stderr, "template: for: range set not a number\n");
+					s->new_err = 1;
 				}
+				return -1;
 			}
-			if (argc > 5) {
-				if (sscanf(argv[5], "%d", &increment) != 1) {
-					if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
-						fprintf(stderr, "template: for: increment set not a number\n");
-						s->new_err = 1;
-					}
-					return -1;
+			if ((argc > 5) && (sscanf(argv[5], "%d", &increment) != 1)) {
+				if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+					fprintf(stderr, "template: for: increment set not a number\n");
+					s->new_err = 1;
 				}
+				return -1;
 			}
-			if (argc > 6) {
-				if (sscanf(argv[6], "%u", &start) != 1) {
-					if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
-						fprintf(stderr, "template: for: start set not a positive number\n");
-						s->new_err = 1;
-					}
-					return -1;
+			if ((argc > 6) && (sscanf(argv[6], "%u", &start) != 1)) {
+				if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+					fprintf(stderr, "template: for: start set not a positive number\n");
+					s->new_err = 1;
 				}
+				return -1;
 			}
 
 			vl = hashmap_getValue(s->variables_hm, list);
@@ -265,17 +288,17 @@ template_for(state *s, int argc, char **argv, int flag)
 #ifdef DEBUG
 			printf("set: %ld %d %d %d %s %s\n", file_position, range, increment, current_index, item, list);
 #endif
-			vi = calloc(1, sizeof(var_info));
+			vi = calloc(1, sizeof(var_string));
 			vi->type = STR;
 			vi->flag = LOCAL;
 			vi->value = calloc(1024, sizeof(char));
 			strcpy(vi->value, vl->list[current_index]);
-			hashmap_setValue(s->variables_hm, item, vi, sizeof(var_info), STR);
+			hashmap_setValue(s->variables_hm, item, vi, sizeof(var_string), STR);
+		} else if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+			fprintf(stderr, "template: for: must have at least 3 parameters: EX: for item in list (times) (increment)\n");
+			s->new_err = 1;
+			return -1;
 		} else {
-			if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
-				fprintf(stderr, "template: for: must have at least 3 parameters: EX: for item in list (times) (increment)\n");
-				s->new_err = 1;
-			}
 			return -1;
 		}
 	} else if (flag == FOR_END) {
@@ -286,7 +309,7 @@ template_for(state *s, int argc, char **argv, int flag)
 			} else {
 				current_index += increment;
 				strcpy(vi->value, vl->list[current_index]);
-				hashmap_setValue(s->variables_hm, item, vi, sizeof(var_info), STR);
+				hashmap_setValue(s->variables_hm, item, vi, sizeof(var_string), STR);
 #ifdef DEBUG
 				printf("loop: %ld %d %d %d %s %s\n", file_position, range, increment, current_index, item, list);
 #endif
@@ -351,10 +374,12 @@ template_keywords_list(state *s)
 		{"content",	&template_content,	CONTENTS},	// {% content src/dir/foo.html %}
 		{"link",	&template_link, 	LINK},		// {% link src/dir/foo.css %}
 		{"block",	&template_variable_add,	VARADD_BLOCK},	// {% block foo %} ... {% endblock %}
-		{"blog",	&template_none,		-1},		// blog - config file only
 		{"for",		&template_for,		FOR},		// {% for item in items -1 %}
-		{"endfor",	&template_for,		FOR_END},		// {% endfor %}
+		{"endfor",	&template_for,		FOR_END},	// {% endfor %}
 		{"list",	&template_variable_add,	VARADD_LIST},	// {% list foo apple banana carrot %}
+		{"dict",	&template_variable_add,	VARADD_DICT},	// {% dict fruit name:apple texture:crunchy %}
+		/* Empty templates, configuration file only, these are processed seperately */
+		{"blog",	&template_none,		-1},		// blog - config file only
 		{NULL, 		NULL,			-2}
 	};
 
@@ -390,12 +415,12 @@ template_variable(state *s)
 	unsigned int index;
 
 	// Test the string
-	if (sscanf(s->variable, "%s.%s", var_name, sub_name) == 2) {
-		s_type = 1;
+	if (sscanf(s->variable, "%[^.].%s", var_name, sub_name) == 2) {
+		s_type = 2;	// Dictionary
 	} else if (sscanf(s->variable, "%s[%u]", var_name, &index) == 2) {
-		s_type = 2;
+		s_type = 1;	// List
 	} else {
-		s_type = 0;
+		s_type = 0;	// String
 		strcpy(var_name, s->variable);
 	}
 
@@ -411,9 +436,9 @@ template_variable(state *s)
 	}
 
 	if (*type == STR && s_type == 0) {
-		var_info *var = hashmap_getValue(s->variables_hm, s->variable);
+		var_string *var = hashmap_getValue(s->variables_hm, var_name);
 		fprintf(s->fp_o, "%s", var->value);
-	} else if (*type == LIST && s_type == 2) {
+	} else if (*type == LIST && s_type == 1) {
 		var_list *var = hashmap_getValue(s->variables_hm, var_name);
 		if (index < var->size) {
 			fprintf(s->fp_o, "%s", var->list[index]);
@@ -423,6 +448,19 @@ template_variable(state *s)
 				s->new_err = 1;
 			}
 			return -3;
+		}
+	} else if (*type == DICT && s_type == 2) {
+		var_dict *var = hashmap_getValue(s->variables_hm, var_name);
+		char *value = hashmap_getValue(var->hashmap, sub_name);
+		if (value == NULL) {
+			if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {
+				fprintf(stderr, "'%s' (%d): Sub variable: '%s' (%s | %s) not found: Mis-spelling or not defined before usage\n"
+						, s->fpsc_l[s->fp_l_level].filename, s->fpsc_l[s->fp_l_level].line, sub_name, var_name, s->variable);
+				s->new_err = 1;
+			}
+			return -1;
+		} else {
+			fprintf(s->fp_o, "%s", value);
 		}
 	} else {
 		if (hashmap_getValue(s->errors_hm, s->fname_line) == NULL) {

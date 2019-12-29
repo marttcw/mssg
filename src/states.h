@@ -7,14 +7,14 @@
 
 enum e_states{ STATE_NONE, COPY, DET_SPEC, SPEC, VAR, AFT_SPEC, BLOCK };
 enum e_states_spec{ IN, OUT };
-enum e_var_type{ NONE = 0, INT = 1, STR = 2, CONTENT = 3, LIST =4 };
+enum e_var_type{ NONE = 0, INT = 1, STR = 2, CONTENT = 3, LIST =4, DICT = 5 };
 enum e_var_flag{ GLOBAL, LOCAL };
 
 typedef struct {
 	char *value;
 	enum e_var_type type;
 	enum e_var_flag flag;
-} var_info;
+} var_string;
 
 typedef struct {
 	char **list;
@@ -22,6 +22,12 @@ typedef struct {
 	enum e_var_type type;
 	enum e_var_flag flag;
 } var_list;
+
+typedef struct {
+	hashmap *hashmap;
+	enum e_var_type type;
+	enum e_var_flag flag;
+} var_dict;
 
 typedef struct {
 	enum e_states current_state;
