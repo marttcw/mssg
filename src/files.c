@@ -15,6 +15,11 @@
 #define PATH_SIZE (1024)
 #define COPY_BUFFER (1024)
 
+typedef struct {
+	char *date;
+	char *var;
+} blog_list_s;
+
 int
 file_copy(const char *dest, const char *src)
 {
@@ -90,24 +95,10 @@ blog_pathToName(const char *path)
 int
 isblog(const char *path)
 {
-	char *tokpath = calloc(strlen(path) + 1, sizeof(char));
-	char *token = NULL;
-	char delim[] = "/";
-
-	strcpy(tokpath, path);
-
-	token = strtok(tokpath, delim);
-	token = strtok(NULL, delim);
-	if (!strcmp(token, "blog")) {
-		token = strtok(NULL, delim);
-		if (strcmp(token, "index.html")) {
-			free(tokpath);
-			return 1;
-		}
+	if (blog_pathToDate(path) == NULL) {
+		return 0;
 	}
-
-	free(tokpath);
-	return 0;
+	return 1;
 }
 
 char *
@@ -143,6 +134,24 @@ make_rel(const char *base_path, const char *full_path)
 
 	strncpy(rel_path, full_path+(i), strlen(full_path)-i);
 	return rel_path;
+}
+
+char *
+make_rel_nofname(const char *base_path, const char *full_path)
+{
+	size_t i, max_pos = 0;
+	char *rel_path = make_rel(base_path, full_path);
+	char *nfn_rel_path = calloc(strlen(rel_path) + 1, sizeof(char));
+
+	for (i = 0; i < strlen(rel_path); ++i) {
+		if (rel_path[i] == '/') {
+			max_pos = i;
+		}
+	}
+
+	strncpy(nfn_rel_path, rel_path, strlen(rel_path)-(strlen(rel_path)-max_pos));
+	free(rel_path);
+	return nfn_rel_path;
 }
 
 char *
@@ -286,6 +295,12 @@ files_directory(files *f, const char *base_dirpath, const char *dirpath, int typ
 }
 
 int
+cmp_blog_list_s(const void *a, const void *b)
+{
+	return -strcmp(((blog_list_s *)a)->date, ((blog_list_s *)b)->date);
+}
+
+int
 files_build(files *f, const char *startpath)
 {
 	int type_loop = 3;
@@ -312,17 +327,19 @@ files_build(files *f, const char *startpath)
 	unsigned int blog_argc = 5;
 	unsigned int blog_index = 0;
 	char **blog_argv = calloc(blog_argc, sizeof(char *));
-	unsigned int bla_top = 10;
-	char **blog_list_argv = calloc(bla_top + 2, sizeof(char *));
 	for (unsigned int i=0; i < blog_argc; ++i) {
 		blog_argv[i] = calloc(256, sizeof(char));
 	}
-	for (unsigned int i=0; i < bla_top; ++i) {
-		blog_list_argv[i] = calloc(256, sizeof(char));
+
+	unsigned int bl_top = 10;
+
+	blog_list_s *blog_list = calloc(bl_top, sizeof(char *));
+	for (unsigned int i=0; i < bl_top; ++i) {
+		blog_list[i].date = calloc(64, sizeof(char));
+		blog_list[i].var = calloc(256, sizeof(char));
 	}
+
 	strcpy(blog_argv[0], "dict");
-	strcpy(blog_list_argv[0], "list");
-	strcpy(blog_list_argv[1], "#blog");
 	char *fname = NULL;
 
 	i = 0;
@@ -333,12 +350,25 @@ files_build(files *f, const char *startpath)
 			switch (type_loop) {
 			case 1:
 				if (blog_index > 0) {
+					// qsort blog_list
+					qsort(blog_list, blog_index, sizeof(blog_list_s), cmp_blog_list_s);
+
 					// Blog posts index end of case
+					char **blog_list_argv = calloc(blog_index + 2, sizeof(char *));
+					for (unsigned int i=0; i < blog_index + 2; ++i) {
+						blog_list_argv[i] = calloc(256, sizeof(char));
+						if (i > 1) {
+							strcpy(blog_list_argv[i], blog_list[i-2].var);
+						}
+					}
+					strcpy(blog_list_argv[0], "list");
+					strcpy(blog_list_argv[1], "#blog");
+
 					state_direct_arg_template(s, blog_index + 2, blog_list_argv);
+					free(blog_list_argv);
 				}
 
 				free(blog_argv);
-				free(blog_list_argv);
 			}
 			--type_loop;
 			i = 0;
@@ -358,7 +388,6 @@ files_build(files *f, const char *startpath)
 		case 2:
 			if (s->copy_list_max > 0) {
 				// File copy
-				// TODO
 				fname = make_fname(f->fil[i].path_relative);
 
 				for (unsigned int k=0; k < s->copy_list_max; ++k) {
@@ -378,18 +407,20 @@ files_build(files *f, const char *startpath)
 		case 1:
 			// index all blog posts
 			if (f->fil[i].make_path != NULL && isblog(f->fil[i].make_path)) {
-				sprintf(blog_argv[1], "blog_%04u", blog_index);
+				sprintf(blog_argv[1], "blog_%u", blog_index);
 				sprintf(blog_argv[2], "date:%s", blog_pathToDate(f->fil[i].make_path));
-				sprintf(blog_argv[3], "link:/%s", make_rel("build", f->fil[i].make_path));
+				sprintf(blog_argv[3], "link:/%s", make_rel_nofname("build", f->fil[i].make_path));
 				sprintf(blog_argv[4], "name:%s", blog_pathToName(f->fil[i].make_path));
 
 				state_direct_arg_template(s, blog_argc, blog_argv);
-				// Reallocate more space for blog_list_argv
-				if (blog_index == (bla_top - 3)) {
-					bla_top *= 1.5;
-					blog_list_argv = realloc(blog_list_argv, (bla_top + 2) * sizeof(char *));
+
+				// Reallocate more space for blog_list
+				if (blog_index == bl_top) {
+					bl_top *= 1.5;
+					blog_list = realloc(blog_list, bl_top * sizeof(blog_list));
 				}
-				sprintf(blog_list_argv[blog_index + 2], "$%s", blog_argv[1]);
+				sprintf(blog_list[blog_index].var, "$%s", blog_argv[1]);
+				sprintf(blog_list[blog_index].date, "%s", blog_argv[2]);
 				++blog_index;
 			}
 			break;

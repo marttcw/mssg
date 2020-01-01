@@ -349,6 +349,26 @@ template_copy(state *s, int argc, char **argv, int flag)
 }
 
 int
+template_execute(state *s, int argc, char **argv, int flag)
+{
+	(void)(s);
+	(void)(flag);
+
+	char *cmd = calloc(1280, sizeof(char));
+
+	for (int i=1; i < argc; ++i) {
+		strcat(cmd, argv[i]);
+		strcat(cmd, " ");
+	}
+
+	// Execute command
+	system(cmd);
+
+	free(cmd);
+	return 0;
+}
+
+int
 template_none(state *s, int argc, char **argv, int flag)
 {
 	(void)(s);
@@ -399,6 +419,7 @@ template_keywords_list(state *s)
 		{"list",	&template_variable_add,	VARADD_LIST},	// {% list foo apple banana carrot %}
 		{"dict",	&template_variable_add,	VARADD_DICT},	// {% dict fruit name:apple texture:crunchy %}
 		{"copy",	&template_copy,		-1},		// {% copy style.css rss.xml %}
+		{"execute",	&template_execute,	-1},		// {% execute mogrify -path build/img_thumb -thumbnail 250x250 src/img_original/*.jpg %}
 		/* Empty templates, configuration file only, these are processed seperately */
 		{"blog",	&template_none,		-1},		// blog - config file only
 		{NULL, 		NULL,			-2}

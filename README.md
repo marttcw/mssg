@@ -2,6 +2,7 @@
 Mart's Static Site Generator written in C (C99)
 
 * [Releases](https://github.com/marttcw/mssg/releases)
+* Development version: v0.0.2
 * Current version: v0.0.1 - 2019-12-29 - Alpha
 
 ## Description
@@ -106,12 +107,15 @@ blog editor vim
   * Templating - blog list - Done
 * Translated page version
 * Gallery feature
-  * Thumbnail generator
+  * Thumbnail generator - Use external program
 * For loop a list of strings - Done
 * For loop a list of dictionary - Done
 * Point to another variable (EX: `{% list fruit $apple $banana $other %}`) - Done? Need further testing
 
 ## Changelogs
+### 2020-01-XX: v0.0.2 - Alpha
+* Execute external programs
+* Blog list now in latest blog order
 ### 2019-12-29: v0.0.1 - Alpha
 * Files templating `base and content` works EX: `{% base src/dir/foo.html %}`
 * Text variables and placements EX: `{% string foo "hello world" %}` and `{{ foo }}`
