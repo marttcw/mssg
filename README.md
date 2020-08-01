@@ -16,17 +16,13 @@ A lightweight and fast static site generator that have simple templating functio
 * [libcmark](https://github.com/commonmark/cmark) - commonmark - Converts commonmark/markdown files to HTML
 
 ## Compiling
-mssg requires [meson](https://mesonbuild.com/) and [ninja](https://ninja-build.org/) to be installed in order to compile, install, and run the project.
-
-* `meson build`
-* `cd build`
-* `ninja`
+* `make`
 
 ## Installation
-* `ninja install`
+* `make install`
 
 ## Uninstallation
-* `ninja uninstall`
+* `make uninstall`
 
 ## Templating Features
 * Variables types
@@ -96,6 +92,7 @@ blog editor vim
 ```
 
 ## TODO
+* Rework
 * Templating - Doing
   * for loop - Done?
 * Hashmap implementation - Done
@@ -113,6 +110,9 @@ blog editor vim
 * Point to another variable (EX: `{% list fruit $apple $banana $other %}`) - Done? Need further testing
 
 ## Changelogs
+### 2020-08-01: v0.0.2 - Rework
+* Make replaced ninja for compiling, etc...
+* Rework starts
 ### 2020-01-XX: v0.0.2 - Alpha
 * Execute external programs
 * Blog list now in latest blog order
