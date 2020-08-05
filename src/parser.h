@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
+#include "templates.h"
+
 enum {
 	PARSER_PARAM_MAX_TOTAL 	= 3,
 	PARSER_PARAM_MAX_CHARS 	= 64
@@ -21,6 +23,7 @@ enum parser_state {
 	PARSER_STATE_COPY = 0,
 	PARSER_STATE_FROM_COPY,
 	PARSER_STATE_COND,
+	PARSER_STATE_COND_QUOTE,
 	PARSER_STATE_FROM_COND,
 	PARSER_STATE_VAR,
 	PARSER_STATE_FROM_VAR,
@@ -28,19 +31,8 @@ enum parser_state {
 	PARSER_STATE_TOTAL
 };
 
-enum parser_node_type {
-	PARSER_NODE_NOT_FOUND = 0,
-	PARSER_NODE_ROOT,
-	PARSER_NODE_VARIABLE,
-	PARSER_NODE_LOOP,
-	PARSER_NODE_SETTER_STR,
-	PARSER_NODE_SETTER_NUM,
-
-	PARSER_NODE_TOTAL
-};
-
 struct parser_node {
-	enum parser_node_type	type;
+	enum templates_type	type;
 	char			parameters[PARSER_PARAM_MAX_TOTAL][PARSER_PARAM_MAX_CHARS];
 	uint32_t		parameters_length[PARSER_PARAM_MAX_TOTAL];
 	uint32_t		parameters_total;
@@ -63,6 +55,7 @@ struct parser {
 };
 
 struct parser parser_create(const char *filepath);
+void parser_destroy(struct parser *parser);
 char *parser_error_message(const struct parser *parser);
 
 #endif // PARSER_H

@@ -13,34 +13,19 @@ struct parser_funcs {
 	void (*read_char)(struct parser *parser, const char character);
 };
 
+struct parser_type_info {
+	const char 	*keyword;
+	const int32_t	max_params;
+};
+
 static char *parser_error_string[PARSER_ERROR_TOTAL] = {
 	[PARSER_ERROR_NONE] 		= "No error has occured",
 	[PARSER_ERROR_FILE_NULL] 	= "Cannot read file: File does not exists or permission not granted to read",
 	[PARSER_ERROR_FILE_ERROR]	= "Error during file reading occured"
 };
 
-static char *parser_node_type_string[PARSER_NODE_TOTAL] = {
-	[PARSER_NODE_NOT_FOUND] = "",
-	[PARSER_NODE_ROOT] = "",
-	[PARSER_NODE_VARIABLE] = "",
-	[PARSER_NODE_LOOP] = "loop",
-	[PARSER_NODE_SETTER_STR] = "string",
-	[PARSER_NODE_SETTER_NUM] = "number"
-};
-
-static enum parser_node_type 
-parser__find_node_type(const char *name)
-{
-	for (uint32_t i = 0; i < PARSER_NODE_TOTAL; ++i)
-	{
-		if (!strcmp(parser_node_type_string[i], name))
-		{
-			return i;
-		}
-	}
-
-	return PARSER_NODE_NOT_FOUND;
-}
+static char 	parameter[PARSER_PARAM_MAX_CHARS] = { 0 };
+static uint32_t	parameter_length = 0;
 
 static void
 parser__read_char_copy(struct parser *parser,
@@ -52,7 +37,7 @@ parser__read_char_copy(struct parser *parser,
 		parser->state = PARSER_STATE_FROM_COPY;
 		break;
 	default:
-		putchar('c');	// TEMP
+		// TODO: Copy over
 		break;
 	}
 }
@@ -90,7 +75,7 @@ parser__read_char_from_copy(struct parser *parser,
 
 		// Initialize node
 		parser->current->nodes[index] = (struct parser_node) {
-			.type = PARSER_NODE_NOT_FOUND,
+			.type = TEMPLATE_NOT_FOUND,
 			//.parameters = { 0 },
 			.parameters_length = { 0 },
 			.char_begin = 0,
@@ -119,8 +104,6 @@ static void
 parser__read_char_cond(struct parser *parser,
 		const char character)
 {
-	static char parameter[PARSER_PARAM_MAX_CHARS] = { 0 };
-	static uint32_t parameter_length = 0;
 
 	switch (character)
 	{
@@ -138,9 +121,9 @@ parser__read_char_cond(struct parser *parser,
 		if (parser->current->finding_type)
 		{
 			// Match with the type
-			parser->current->type = parser__find_node_type(parameter);
+			parser->current->type = templates_str_to_type(parameter);
 
-			if (parser->current->type == PARSER_NODE_NOT_FOUND)
+			if (parser->current->type == TEMPLATE_NOT_FOUND)
 			{
 				fprintf(stderr, "ERROR: '%s' not a recognised command!\n",
 						parameter);
@@ -160,6 +143,24 @@ parser__read_char_cond(struct parser *parser,
 		parameter[0] = '\0';
 		parameter_length = 0;
 		break;
+	case '"':
+		parser->state = PARSER_STATE_COND_QUOTE;
+		break;
+	default:
+		parameter[parameter_length++] = character;
+		break;
+	}
+}
+
+static void
+parser__read_char_cond_quote(struct parser *parser,
+		const char character)
+{
+	switch (character)
+	{
+	case '"':
+		parser->state = PARSER_STATE_COND;
+		break;
 	default:
 		parameter[parameter_length++] = character;
 		break;
@@ -173,7 +174,7 @@ parser__read_char_from_cond(struct parser *parser,
 	switch (character)
 	{
 	case '}':
-		printf("COND: %s\n", parser_node_type_string[parser->current->type]);
+		printf("COND: %s\n", templates_type_to_str(parser->current->type));
 
 		for (uint32_t i = 0; i < parser->current->parameters_total; ++i)
 		{
@@ -240,6 +241,10 @@ static const struct parser_funcs parser_funcs[PARSER_STATE_TOTAL] = {
 		.read_char = parser__read_char_cond
 	},
 
+	[PARSER_STATE_COND_QUOTE] = {
+		.read_char = parser__read_char_cond_quote
+	},
+
 	[PARSER_STATE_FROM_COND] = {
 		.read_char = parser__read_char_from_cond
 	},
@@ -267,7 +272,7 @@ parser_create(const char *filepath)
 		.error = PARSER_ERROR_NONE,
 		.state = PARSER_STATE_COPY,
 		.node = {
-			.type = PARSER_NODE_ROOT,
+			.type = TEMPLATE_ROOT,
 			.char_begin = 0,
 			.char_end = 0,
 			.length = 0,
@@ -311,6 +316,29 @@ parser_create(const char *filepath)
 	fclose(fp);
 
 	return parser;
+}
+
+static void
+parser__destroy_node(struct parser_node *node)
+{
+	for (uint32_t i = 0; i < node->length; ++i)
+	{
+		parser__destroy_node(&node->nodes[i]);
+	}
+
+	if (node->nodes != NULL)
+	{
+		free(node->nodes);
+		node->nodes = NULL;
+		node->alloc_length = 0;
+		node->length = 0;
+	}
+}
+
+void
+parser_destroy(struct parser *parser)
+{
+	parser__destroy_node(&parser->node);
 }
 
 char *
