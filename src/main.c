@@ -14,6 +14,7 @@ main(int argc, char **argv)
 		fprintf(stderr, "Error code: %d | Message: %s\n",
 				parser.error, parser_error_message(&parser));
 	}
+	parser_print(&parser);
 	parser_destroy(&parser);
 
 	return 0;

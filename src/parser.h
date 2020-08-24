@@ -57,6 +57,7 @@ struct parser {
 struct parser parser_create(const char *filepath);
 void parser_destroy(struct parser *parser);
 char *parser_error_message(const struct parser *parser);
+void parser_print(const struct parser *parser);
 
 #endif // PARSER_H
 

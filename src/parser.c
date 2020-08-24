@@ -49,6 +49,7 @@ parser__read_char_from_copy(struct parser *parser,
 	switch (character)
 	{
 	case '%':
+	case '{':
 		// Allocate memory if not there
 		if (parser->current->nodes == NULL ||
 				parser->current->alloc_length == 0)
@@ -88,14 +89,27 @@ parser__read_char_from_copy(struct parser *parser,
 		};
 
 		parser->current = &parser->current->nodes[index];
-
-		parser->state = PARSER_STATE_COND;
-		break;
-	case '{':
-		parser->state = PARSER_STATE_VAR;
+		parser->current->char_begin = parser->current_file_position-1;
 		break;
 	default:
 		parser->state = PARSER_STATE_COPY;
+		return;
+	}
+
+	switch (character)
+	{
+	case '%':
+		parser->state = PARSER_STATE_COND;
+		break;
+	case '{':
+		parser->current->type = TEMPLATE_VARIABLE;
+		parser->current->parameters_length[0] = 0;
+		parser->current->parameters_total = 1;
+		parser->current->finding_type = false;
+
+		parser->state = PARSER_STATE_VAR;
+		break;
+	default:
 		break;
 	}
 }
@@ -174,19 +188,21 @@ parser__read_char_from_cond(struct parser *parser,
 	switch (character)
 	{
 	case '}':
-		printf("COND: %s\n", templates_type_to_str(parser->current->type));
-
-		for (uint32_t i = 0; i < parser->current->parameters_total; ++i)
-		{
-			printf("\t%s\n", parser->current->parameters[i]);
-		}
-
-		parser->current->char_begin = parser->current_file_position;
 		parser->current->char_end = parser->current_file_position;
 
-		printf("Char pos: %ld\n", parser->current->char_begin);
+		const enum templates_type ttype = parser->current->type;
 
-		parser->current = parser->current->parent;
+		switch (ttype)
+		{
+		case TEMPLATE_LOOP:
+			break;
+		case TEMPLATE_END:
+			parser->current = parser->current->parent->parent;
+			break;
+		default:
+			parser->current = parser->current->parent;
+		}
+
 		parser->state = PARSER_STATE_COPY;
 		break;
 	default:
@@ -205,8 +221,10 @@ parser__read_char_var(struct parser *parser,
 		parser->state = PARSER_STATE_FROM_VAR;
 		break;
 	default:
-		putchar(character);
-		break;
+	{
+		const uint32_t index = parser->current->parameters_length[0]++;
+		parser->current->parameters[0][index] = character;
+	}	break;
 	}
 }
 
@@ -217,8 +235,14 @@ parser__read_char_from_var(struct parser *parser,
 	switch (character)
 	{
 	case '}':
+	{
+		const uint32_t index = parser->current->parameters_length[0];
+		parser->current->parameters[0][index] = '\0';
+		parser->current->char_end = parser->current_file_position;
+		parser->current = parser->current->parent;
+
 		parser->state = PARSER_STATE_COPY;
-		break;
+	}	break;
 	default:
 		parser->state = PARSER_STATE_VAR;
 		break;
@@ -311,8 +335,6 @@ parser_create(const char *filepath)
 		}
 	}
 
-	putchar('\n');
-
 	fclose(fp);
 
 	return parser;
@@ -345,5 +367,31 @@ char *
 parser_error_message(const struct parser *parser)
 {
 	return parser_error_string[parser->error];
+}
+
+void
+parser__node_print(const struct parser_node *node, const uint32_t level)
+{
+	for (uint32_t i = 0; i < level; ++i)
+	{
+		printf("    ");
+	}
+
+	printf("type: %s | params: %d | char: %ld => %ld |"
+			" finding_type: %d | nodes: %d\n", 
+			templates_type_to_str(node->type),
+			node->parameters_total, node->char_begin,
+			node->char_end, node->finding_type, node->length);
+
+	for (uint32_t i = 0; i < node->length; ++i)
+	{
+		parser__node_print(&node->nodes[i], level + 1);
+	}
+}
+
+void
+parser_print(const struct parser *parser)
+{
+	parser__node_print(&parser->node, 0);
 }
 

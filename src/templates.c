@@ -59,7 +59,7 @@ static const struct templates_type_info templates_table[TEMPLATE_TOTAL] = {
 	// 			keyword		max_p.
 	[TEMPLATE_NOT_FOUND] 	= { NULL,	0,	NULL },
 	[TEMPLATE_ROOT] 	= { NULL,	0,	NULL },
-	[TEMPLATE_VARIABLE] 	= { NULL,	0,	templates_variable },
+	[TEMPLATE_VARIABLE] 	= { "var",	0,	templates_variable },
 	[TEMPLATE_LOOP] 	= { "loop",	4,	templates_loop },
 	[TEMPLATE_END]		= { "end",	1,	templates_end },
 	[TEMPLATE_SETTER_STR] 	= { "string", 	3,	templates_string },
