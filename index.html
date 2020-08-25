@@ -1,5 +1,6 @@
-{% string title Sneed %}
-{% string note "This is a thing" %}
+{% set title "Hello World" %}
+{% set note "This is a thing" %}
+{% set apples 2 %}
 <!DOCTYPE html>
 <html>
   <head>
@@ -9,13 +10,13 @@
     <h1>Test</h1>
     {% loop i 1 3 %}
       <p>One two three four</p>
-      {% string title AAAA %}
+      {% set title AAAA %}
       {% loop j 1 4 %}
-        {% string test test %}
+        {% set test test %}
       {% end %}
     {% end %}
 
-    {% string hello hello %}
+    {% set hello hello %}
   </body>
 </html>
 

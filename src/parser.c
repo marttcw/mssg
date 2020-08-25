@@ -4,8 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "templates.h"
+
 enum {
 	CHUNK_SIZE = 512,
+	PARAM_CHUNK = 256,
+	ALLOC_STR = 64,
 	ALLOC_STEP = 4
 };
 
@@ -24,8 +28,19 @@ static char *parser_error_string[PARSER_ERROR_TOTAL] = {
 	[PARSER_ERROR_FILE_ERROR]	= "Error during file reading occured"
 };
 
-static char 	parameter[PARSER_PARAM_MAX_CHARS] = { 0 };
+static char 	*parameter = NULL;
 static uint32_t	parameter_length = 0;
+
+void
+parser_deinit(void)
+{
+	if (parameter != NULL)
+	{
+		free(parameter);
+	}
+
+	parameter_length = 0;
+}
 
 static void
 parser__read_char_copy(struct parser *parser,
@@ -77,8 +92,10 @@ parser__read_char_from_copy(struct parser *parser,
 		// Initialize node
 		parser->current->nodes[index] = (struct parser_node) {
 			.type = TEMPLATE_NOT_FOUND,
-			//.parameters = { 0 },
-			.parameters_length = { 0 },
+			.argc = 0,
+			.argl = NULL,
+			.argv = NULL,
+			.arga = 0,
 			.char_begin = 0,
 			.char_end = 0,
 			.finding_type = true,
@@ -89,6 +106,14 @@ parser__read_char_from_copy(struct parser *parser,
 		};
 
 		parser->current = &parser->current->nodes[index];
+		parser->current->argl = malloc(sizeof(uint32_t) * ALLOC_STEP);
+		parser->current->argv = malloc(sizeof(char *) * ALLOC_STEP);
+		for (uint32_t i = 0; i < ALLOC_STEP; ++i)
+		{
+			parser->current->argv[i] = calloc(sizeof(char),
+					ALLOC_STR);
+		}
+		parser->current->arga = ALLOC_STEP;
 		parser->current->char_begin = parser->current_file_position-1;
 		break;
 	default:
@@ -103,8 +128,8 @@ parser__read_char_from_copy(struct parser *parser,
 		break;
 	case '{':
 		parser->current->type = TEMPLATE_VARIABLE;
-		parser->current->parameters_length[0] = 0;
-		parser->current->parameters_total = 1;
+		parser->current->argc = 0;
+		parser->current->argl[0] = 0;
 		parser->current->finding_type = false;
 
 		parser->state = PARSER_STATE_VAR;
@@ -147,10 +172,16 @@ parser__read_char_cond(struct parser *parser,
 		}
 		else
 		{
+			const uint32_t index = parser->current->argc++;
 			// Appends to parameter
-			const uint32_t index = parser->current->parameters_total++;
-			strcpy(parser->current->parameters[index], parameter);
-			parser->current->parameters_length[index] = parameter_length;
+			if (parser->current->argv == NULL)
+			{
+				parser->current->argv = malloc(
+						sizeof(char) *
+						(parameter_length + 1));
+			}
+			strcpy(parser->current->argv[index], parameter);
+			parser->current->argl[index] = parameter_length;
 		}
 
 		// Reset
@@ -161,6 +192,11 @@ parser__read_char_cond(struct parser *parser,
 		parser->state = PARSER_STATE_COND_QUOTE;
 		break;
 	default:
+		if (parameter == NULL)
+		{
+			parameter = malloc(sizeof(char) * PARAM_CHUNK);
+		}
+
 		parameter[parameter_length++] = character;
 		break;
 	}
@@ -220,10 +256,12 @@ parser__read_char_var(struct parser *parser,
 	case '}':
 		parser->state = PARSER_STATE_FROM_VAR;
 		break;
+	case ' ':
+		break;
 	default:
 	{
-		const uint32_t index = parser->current->parameters_length[0]++;
-		parser->current->parameters[0][index] = character;
+		const uint32_t index = parser->current->argl[0]++;
+		parser->current->argv[0][index] = character;
 	}	break;
 	}
 }
@@ -236,11 +274,12 @@ parser__read_char_from_var(struct parser *parser,
 	{
 	case '}':
 	{
-		const uint32_t index = parser->current->parameters_length[0];
-		parser->current->parameters[0][index] = '\0';
+		const uint32_t index = parser->current->argl[0];
+		parser->current->argv[0][index] = '\0';
+		parser->current->argc = 1;
 		parser->current->char_end = parser->current_file_position;
-		parser->current = parser->current->parent;
 
+		parser->current = parser->current->parent;
 		parser->state = PARSER_STATE_COPY;
 	}	break;
 	default:
@@ -343,6 +382,13 @@ parser_create(const char *filepath)
 static void
 parser__destroy_node(struct parser_node *node)
 {
+	free(node->argl);
+	for (uint32_t i = 0; i < node->arga; ++i)
+	{
+		free(node->argv[i]);
+	}
+	free(node->argv);
+
 	for (uint32_t i = 0; i < node->length; ++i)
 	{
 		parser__destroy_node(&node->nodes[i]);
@@ -378,10 +424,17 @@ parser__node_print(const struct parser_node *node, const uint32_t level)
 	}
 
 	printf("type: %s | params: %d | char: %ld => %ld |"
-			" finding_type: %d | nodes: %d\n", 
+			" finding_type: %d | nodes: %d | ", 
 			templates_type_to_str(node->type),
-			node->parameters_total, node->char_begin,
+			node->argc, node->char_begin,
 			node->char_end, node->finding_type, node->length);
+
+	for (uint32_t i = 0; i < node->argc; ++i)
+	{
+		printf("%s ", node->argv[i]);
+	}
+
+	putchar('\n');
 
 	for (uint32_t i = 0; i < node->length; ++i)
 	{
@@ -393,5 +446,33 @@ void
 parser_print(const struct parser *parser)
 {
 	parser__node_print(&parser->node, 0);
+}
+
+void
+parser__generate_node(const struct parser_node *node,
+		FILE *stream)
+{
+	const enum templates_error_codes error = 
+		templates(stream, node->type, node->argc,
+			(const char ** const) node->argv);
+
+	if (error != TEMPLATE_ERROR_NONE &&
+			error != TEMPLATE_ERROR_NO_FUNC)
+	{
+		printf("%s\n", templates_error(error));
+	}
+
+	for (uint32_t i = 0; i < node->length; ++i)
+	{
+		parser__generate_node(&node->nodes[i], stream);
+	}
+}
+
+void
+parser_generate(const struct parser *parser,
+		FILE *stream)
+{
+	parser__generate_node(&parser->node, stream);
+	fprintf(stream, "\n");
 }
 

@@ -6,11 +6,6 @@
 
 #include "templates.h"
 
-enum {
-	PARSER_PARAM_MAX_TOTAL 	= 3,
-	PARSER_PARAM_MAX_CHARS 	= 64
-};
-
 enum parser_error {
 	PARSER_ERROR_NONE = 0,
 	PARSER_ERROR_FILE_NULL,
@@ -33,9 +28,10 @@ enum parser_state {
 
 struct parser_node {
 	enum templates_type	type;
-	char			parameters[PARSER_PARAM_MAX_TOTAL][PARSER_PARAM_MAX_CHARS];
-	uint32_t		parameters_length[PARSER_PARAM_MAX_TOTAL];
-	uint32_t		parameters_total;
+	uint32_t		argc;
+	uint32_t		*argl;
+	char			**argv;
+	uint32_t		arga;
 	uint64_t		char_begin;
 	uint64_t		char_end;
 	bool			finding_type;
@@ -54,10 +50,12 @@ struct parser {
 	struct parser_node	*current;
 };
 
+void parser_deinit(void);
 struct parser parser_create(const char *filepath);
 void parser_destroy(struct parser *parser);
 char *parser_error_message(const struct parser *parser);
 void parser_print(const struct parser *parser);
+void parser_generate(const struct parser *parser, FILE *stream);
 
 #endif // PARSER_H
 
