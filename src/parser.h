@@ -48,6 +48,7 @@ struct parser {
 	uint64_t		current_file_position;
 	struct parser_node	node;
 	struct parser_node	*current;
+	FILE			*fp;
 };
 
 void parser_deinit(void);

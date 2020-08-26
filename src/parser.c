@@ -341,11 +341,12 @@ parser_create(const char *filepath)
 			.length = 0,
 			.nodes = NULL
 		},
-		.current = NULL
+		.current = NULL,
+		.fp = NULL
 	};
 
-	FILE *fp = fopen(filepath, "r");
-	if (fp == NULL)
+	parser.fp = fopen(filepath, "r");
+	if (parser.fp == NULL)
 	{
 		return (struct parser) { .error = PARSER_ERROR_FILE_NULL };
 	}
@@ -356,11 +357,11 @@ parser_create(const char *filepath)
 
 	while (read_size == CHUNK_SIZE)
 	{
-		uint64_t file_position = ftell(fp);
-		read_size = fread(chunk, sizeof(char), CHUNK_SIZE, fp);
+		uint64_t file_position = ftell(parser.fp);
+		read_size = fread(chunk, sizeof(char), CHUNK_SIZE, parser.fp);
 		chunk[CHUNK_SIZE] = '\0';
 
-		if (ferror(fp))
+		if (ferror(parser.fp))
 		{
 			parser.error = PARSER_ERROR_FILE_ERROR;
 			break;
@@ -373,8 +374,6 @@ parser_create(const char *filepath)
 			parser__read_char(&parser, chunk[i]);
 		}
 	}
-
-	fclose(fp);
 
 	return parser;
 }
@@ -407,6 +406,7 @@ void
 parser_destroy(struct parser *parser)
 {
 	parser__destroy_node(&parser->node);
+	fclose(parser->fp);
 }
 
 char *
@@ -448,10 +448,44 @@ parser_print(const struct parser *parser)
 	parser__node_print(&parser->node, 0);
 }
 
-void
+uint64_t
 parser__generate_node(const struct parser_node *node,
-		FILE *stream)
+		FILE *stream,
+		FILE *fp)
 {
+	static uint64_t prev_pos = 0;
+	const uint64_t cur_pos = node->char_begin;
+	const uint64_t total_len_read = cur_pos - prev_pos - 1;
+	uint64_t rem_len_read = total_len_read;
+	char chunk[CHUNK_SIZE] = { 0 };
+
+	// Copy over non-nodes pos
+	fseek(fp, prev_pos + 1, SEEK_SET);
+
+	while (rem_len_read)
+	{
+		uint32_t chunk_read = CHUNK_SIZE;
+		if (rem_len_read < CHUNK_SIZE)
+		{
+			chunk_read = rem_len_read;
+			rem_len_read = 0;
+		}
+		else
+		{
+			rem_len_read -= CHUNK_SIZE;
+		}
+		size_t read_size = fread(chunk, sizeof(char), chunk_read, fp);
+		chunk[chunk_read] = '\0';
+
+		if (ferror(fp) || (read_size != chunk_read) ||
+				(chunk[0] == '\n' && chunk[1] == '\0'))
+		{
+			break;
+		}
+
+		fprintf(stream, "%s", chunk);
+	}
+
 	const enum templates_error_codes error = 
 		templates(stream, node->type, node->argc,
 			(const char ** const) node->argv);
@@ -462,17 +496,42 @@ parser__generate_node(const struct parser_node *node,
 		printf("%s\n", templates_error(error));
 	}
 
+	prev_pos = node->char_end;
+
 	for (uint32_t i = 0; i < node->length; ++i)
 	{
-		parser__generate_node(&node->nodes[i], stream);
+		prev_pos = parser__generate_node(&node->nodes[i], stream, fp);
 	}
+
+	return prev_pos;
 }
 
 void
 parser_generate(const struct parser *parser,
 		FILE *stream)
 {
-	parser__generate_node(&parser->node, stream);
+	rewind(parser->fp);
+	const uint64_t final_pos = parser__generate_node(&parser->node, stream, parser->fp);
+
+	// Read final part after final template
+	char chunk[CHUNK_SIZE] = { 0 };
+
+	// Copy over non-nodes pos
+	fseek(parser->fp, final_pos + 1, SEEK_SET);
+	size_t read_size = CHUNK_SIZE;
+
+	while (read_size == CHUNK_SIZE)
+	{
+		read_size = fread(chunk, sizeof(char), CHUNK_SIZE, parser->fp);
+		chunk[read_size] = '\0';
+
+		if (ferror(parser->fp))
+		{
+			break;
+		}
+
+		fprintf(stream, "%s", chunk);
+	}
 	fprintf(stream, "\n");
 }
 

@@ -8,6 +8,7 @@ define SRC
 src/parser.c
 src/log.c
 src/templates.c
+src/minify.c
 endef
 
 SRC := $(strip ${SRC})
