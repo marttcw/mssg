@@ -49,10 +49,17 @@ struct parser {
 	struct parser_node	node;
 	struct parser_node	*current;
 	FILE			*fp;
+	char			filepath[256];
+
+	bool			has_base;
+	char			base_filepath[256];
+	struct parser		*base;
 };
 
 void parser_deinit(void);
-struct parser parser_create(const char *filepath);
+enum parser_error parser_create(struct parser *parser,
+		const char *filepath,
+		const char *root_filepath);
 void parser_destroy(struct parser *parser);
 char *parser_error_message(const struct parser *parser);
 void parser_print(const struct parser *parser);

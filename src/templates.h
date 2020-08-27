@@ -3,14 +3,18 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 enum templates_type {
 	TEMPLATE_NOT_FOUND = 0,
 	TEMPLATE_ROOT,
 	TEMPLATE_VARIABLE,
 	TEMPLATE_LOOP,
-	TEMPLATE_END,
 	TEMPLATE_SET_VAR,
+	TEMPLATE_SET_BLOCK,
+	TEMPLATE_PUT_BLOCK,
+	TEMPLATE_BASE,
+	TEMPLATE_END,
 
 	TEMPLATE_TOTAL
 };
@@ -31,7 +35,12 @@ void templates_deinit(void);
 enum templates_error_codes templates(FILE *stream,
 		const enum templates_type type,
 		const uint32_t argc,
-		const char ** const argv);
+		const char ** const argv,
+		bool *generate_outside,
+		FILE **indirect_stream,
+		const enum templates_type child_of_type,
+		const uint32_t parent_argc,
+		const char **parent_argv);
 enum templates_type templates_str_to_type(const char *keyword);
 const char *templates_type_to_str(const enum templates_type type);
 const char *templates_error(const enum templates_error_codes code);
