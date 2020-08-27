@@ -164,8 +164,10 @@ parser__read_char_cond(struct parser *parser,
 
 			if (parser->current->type == TEMPLATE_NOT_FOUND)
 			{
-				fprintf(stderr, "ERROR: '%s' not a recognised command!\n",
-						parameter);
+				fprintf(stderr, "ERROR: '%s': %d: '%s' not a"
+						" recognised command!\n",
+						parser->filepath,
+						parser->line, parameter);
 			}
 
 			parser->current->finding_type = false;
@@ -173,12 +175,27 @@ parser__read_char_cond(struct parser *parser,
 		else
 		{
 			const uint32_t index = parser->current->argc++;
-			// Appends to parameter
-			if (parser->current->argv == NULL)
+
+			if (index == (parser->current->arga - 1))
 			{
-				parser->current->argv = malloc(
-						sizeof(char) *
-						(parameter_length + 1));
+				parser->current->arga += ALLOC_STEP;
+				parser->current->argv = realloc(
+						parser->current->argv,
+						sizeof(char *) *
+						parser->current->arga);
+				for (uint32_t i = (index+1);
+						i < parser->current->arga;
+						++i)
+				{
+					parser->current->argv[i] = calloc(
+							sizeof(char),
+							ALLOC_STR);
+				}
+
+				parser->current->argl = realloc(
+						parser->current->argl,
+						sizeof(uint32_t) *
+						parser->current->arga);
 			}
 			strcpy(parser->current->argv[index], parameter);
 			parser->current->argl[index] = parameter_length;
@@ -360,6 +377,7 @@ parser_create(struct parser *parser,
 
 	parser->current = NULL;
 	parser->fp = NULL;
+	parser->line = 1;
 	strcpy(parser->filepath, filepath);
 
 	parser->has_base = false;
@@ -396,6 +414,10 @@ parser_create(struct parser *parser,
 			// Parse the character
 			parser->current_file_position = file_position;
 			parser__read_char(parser, chunk[i]);
+			if (chunk[i] == '\n')
+			{
+				++parser->line;
+			}
 		}
 	}
 

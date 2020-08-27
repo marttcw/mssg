@@ -54,7 +54,6 @@ minify__rc_tread(struct minify *minify,
 	{
 	case '>':
 		minify->tag[minify->tag_length] = '\0';
-		minify->prev = ch;
 		++minify->level;
 
 		if (!strcmp(minify->tag, "pre"))
@@ -86,6 +85,7 @@ minify__rc_tloose(struct minify *minify,
 		if (minify->prev == '<')
 		{
 			minify->state = MINIFY_STATE_TAG_CLOSE;
+			show = true;
 		}
 		break;
 	case ' ':
@@ -100,8 +100,6 @@ minify__rc_tloose(struct minify *minify,
 	default:
 		show = true;
 	}
-
-	minify->prev = ch;
 
 	return show;
 }
@@ -122,8 +120,6 @@ minify__rc_tdirect(struct minify *minify,
 		break;
 	}
 
-	minify->prev = ch;
-
 	return true;
 }
 
@@ -138,8 +134,6 @@ minify__rc_tclose(struct minify *minify,
 		minify->state = minify->level_state[minify->level];
 		break;
 	}
-
-	minify->prev = ch;
 
 	return true;
 }
@@ -156,7 +150,9 @@ minify__rc(struct minify *minify,
 			[MINIFY_STATE_TAG_DIRECT] = minify__rc_tdirect,
 			[MINIFY_STATE_TAG_CLOSE] = minify__rc_tclose,
 	};
-	return func[minify->state](minify, ch);
+	bool retval =  func[minify->state](minify, ch);
+	minify->prev = ch;
+	return retval;
 }
 
 void

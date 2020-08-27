@@ -49,6 +49,7 @@ struct parser {
 	struct parser_node	node;
 	struct parser_node	*current;
 	FILE			*fp;
+	uint32_t		line;
 	char			filepath[256];
 
 	bool			has_base;
