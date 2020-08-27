@@ -67,6 +67,7 @@ enum templates_argc_min {
 	TEMPLATE_ARGCMIN_SET_BLOCK = 1,
 	TEMPLATE_ARGCMIN_PUT_BLOCK = 1,
 	TEMPLATE_ARGCMIN_BASE = 1,
+	TEMPLATE_ARGCMIN_LINK = 1,
 	TEMPLATE_ARGCMIN_END = 0,
 };
 
@@ -181,28 +182,12 @@ templates_deinit(void)
 }
 
 static enum templates_error_codes
-templates_variable(FILE *stream,
-		const uint32_t argc,
-		const char **argv,
-		bool *generate_outside,
-		FILE **indirect_stream,
-		const enum templates_type parent_of_type,
-		const uint32_t parent_argc,
-		const char **parent_argv)
+templates_variable(struct templates templates)
 {
-	(void) generate_outside;
-	(void) parent_of_type;
-	(void) parent_argc;
-	(void) parent_argv;
+	FILE *out_stream = (*templates.generate_outside) ?
+		templates.stream : *templates.indirect_stream;
 
-	FILE *out_stream = (*generate_outside) ? stream : *indirect_stream;
-
-	if (argc < TEMPLATE_ARGCMIN_VARIABLE)
-	{
-		return TEMPLATE_ERROR_ARGCMIN_NSAT;
-	}
-
-	const struct variable *var = templates_varlist_get(argv[0]);
+	const struct variable *var = templates_varlist_get(templates.argv[0]);
 	if (var == NULL)
 	{
 		return TEMPLATE_ERROR_GETVAR_NOT_FOUND;
@@ -227,51 +212,17 @@ templates_variable(FILE *stream,
 }
 
 static enum templates_error_codes
-templates_loop(FILE *stream,
-		const uint32_t argc,
-		const char **argv,
-		bool *generate_outside,
-		FILE **indirect_stream,
-		const enum templates_type parent_of_type,
-		const uint32_t parent_argc,
-		const char **parent_argv)
+templates_loop(struct templates templates)
 {
-	(void) argc;
-	(void) argv;
-	(void) stream;
-	(void) generate_outside;
-	(void) indirect_stream;
-	(void) parent_of_type;
-	(void) parent_argc;
-	(void) parent_argv;
-
+	(void) templates;
 	return TEMPLATE_ERROR_NONE;
 }
 
 static enum templates_error_codes
-templates_set_var(FILE *stream,
-		const uint32_t argc,
-		const char **argv,
-		bool *generate_outside,
-		FILE **indirect_stream,
-		const enum templates_type parent_of_type,
-		const uint32_t parent_argc,
-		const char **parent_argv)
+templates_set_var(struct templates templates)
 {
-	(void) stream;
-	(void) generate_outside;
-	(void) indirect_stream;
-	(void) parent_of_type;
-	(void) parent_argc;
-	(void) parent_argv;
-
-	if (argc < TEMPLATE_ARGCMIN_SET_VAR)
-	{
-		return TEMPLATE_ERROR_ARGCMIN_NSAT;
-	}
-
-	const char *name = argv[0];
-	const char *data = argv[1];
+	const char *name = templates.argv[0];
+	const char *data = templates.argv[1];
 	const enum vartype type = templates_dettype(data);
 
 	if (type == TEMPLATE_VARTYPE_ERROR)
@@ -301,99 +252,43 @@ templates_set_var(FILE *stream,
 }
 
 static enum templates_error_codes
-templates_set_block(FILE *stream,
-		const uint32_t argc,
-		const char **argv,
-		bool *generate_outside,
-		FILE **indirect_stream,
-		const enum templates_type parent_of_type,
-		const uint32_t parent_argc,
-		const char **parent_argv)
+templates_set_block(struct templates templates)
 {
-	(void) stream;
-	(void) argc;
-	(void) indirect_stream;
-	(void) parent_of_type;
-	(void) parent_argc;
-	(void) parent_argv;
-
-	*generate_outside = false;
-	*indirect_stream = templates__add_block(argv[0]);
+	*templates.generate_outside = false;
+	*templates.indirect_stream = templates__add_block(templates.argv[0]);
 
 	return TEMPLATE_ERROR_NONE;
 }
 
 static enum templates_error_codes
-templates_put_block(FILE *stream,
-		const uint32_t argc,
-		const char **argv,
-		bool *generate_outside,
-		FILE **indirect_stream,
-		const enum templates_type parent_of_type,
-		const uint32_t parent_argc,
-		const char **parent_argv)
+templates_put_block(struct templates templates)
 {
-	(void) stream;
-	(void) argc;
-	(void) argv;
-	(void) generate_outside;
-	(void) indirect_stream;
-	(void) parent_of_type;
-	(void) parent_argc;
-	(void) parent_argv;
-
-	FILE *file = templates_block_get(argv[0]);
+	FILE *file = templates_block_get(templates.argv[0]);
 	if (file)
 	{
-		file_append_file(stream, file);
+		file_append_file(templates.stream, file);
 	}
 	else
 	{
-		fprintf(stderr, "ERROR: Cannot get file '%s'!\n", argv[0]);
+		fprintf(stderr, "ERROR: Cannot get file '%s'!\n",
+				templates.argv[0]);
 	}
 	return TEMPLATE_ERROR_NONE;
 }
 
 static enum templates_error_codes
-templates_base(FILE *stream,
-		const uint32_t argc,
-		const char **argv,
-		bool *generate_outside,
-		FILE **indirect_stream,
-		const enum templates_type parent_of_type,
-		const uint32_t parent_argc,
-		const char **parent_argv)
+templates_link(struct templates templates)
 {
-	(void) stream;
-	(void) argc;
-	(void) argv;
-	(void) generate_outside;
-	(void) indirect_stream;
-	(void) parent_of_type;
-	(void) parent_argc;
-	(void) parent_argv;
+	(void) templates;
 	return TEMPLATE_ERROR_NONE;
 }
 
 static enum templates_error_codes
-templates_end(FILE *stream,
-		const uint32_t argc,
-		const char **argv,
-		bool *generate_outside,
-		FILE **indirect_stream,
-		const enum templates_type parent_of_type,
-		const uint32_t parent_argc,
-		const char **parent_argv)
+templates_end(struct templates templates)
 {
-	(void) stream;
-	(void) argc;
-	(void) argv;
-	(void) indirect_stream;
-	(void) parent_argc;
-	(void) parent_argv;
-	*generate_outside = true;
+	*templates.generate_outside = true;
 
-	switch (parent_of_type)
+	switch (templates.parent_type)
 	{
 	case TEMPLATE_SET_BLOCK:
 		break;
@@ -403,18 +298,15 @@ templates_end(FILE *stream,
 		break;
 	}
 
-	*indirect_stream = NULL;
+	*templates.indirect_stream = NULL;
 
 	return TEMPLATE_ERROR_NONE;
 }
 
 struct templates_type_info {
 	const char 			*keyword;
-	const int32_t			max_params;
-	enum templates_error_codes
-		(* const func)(FILE *, const uint32_t, const char **, bool *,
-				FILE **, const enum templates_type,
-				const uint32_t, const char **);
+	const uint32_t			max_params;
+	enum templates_error_codes (* const func)(struct templates);
 };
 
 static const struct templates_type_info templates_table[TEMPLATE_TOTAL] = {
@@ -427,7 +319,8 @@ static const struct templates_type_info templates_table[TEMPLATE_TOTAL] = {
 	[TEMPLATE_SET_VAR] 	= { "set", 	TEMPLATE_ARGCMIN_SET_VAR,	templates_set_var },
 	[TEMPLATE_SET_BLOCK]	= { "setblock",	TEMPLATE_ARGCMIN_SET_BLOCK,	templates_set_block },
 	[TEMPLATE_PUT_BLOCK]	= { "putblock",	TEMPLATE_ARGCMIN_PUT_BLOCK,	templates_put_block },
-	[TEMPLATE_BASE]		= { "base",	TEMPLATE_ARGCMIN_BASE,		templates_base },
+	[TEMPLATE_BASE]		= { "base",	TEMPLATE_ARGCMIN_BASE,		NULL },
+	[TEMPLATE_LINK]		= { "link",	TEMPLATE_ARGCMIN_LINK,		templates_link },
 	[TEMPLATE_END]		= { "end",	TEMPLATE_ARGCMIN_END,		templates_end },
 };
 
@@ -453,26 +346,21 @@ templates_type_to_str(const enum templates_type type)
 }
 
 enum templates_error_codes
-templates(FILE *stream,
-		const enum templates_type type,
-		const uint32_t argc,
-		const char ** const argv,
-		bool *generate_outside,
-		FILE **indirect_stream,
-		const enum templates_type parent_of_type,
-		const uint32_t parent_argc,
-		const char **parent_argv)
+templates(struct templates templates)
 {
-	enum templates_error_codes (* const func)
-		(FILE *, const uint32_t, const char **, bool *, FILE **,
-		 const enum templates_type, const uint32_t, const char **)
-		= templates_table[type].func;
+	const struct templates_type_info row = templates_table[templates.type];
 
-	if (func != NULL)
+	if (row.func != NULL)
 	{
-		return func(stream, argc, argv, generate_outside,
-				indirect_stream,
-				parent_of_type, parent_argc, parent_argv);
+
+		if (templates.argc < row.max_params)
+		{
+			return TEMPLATE_ERROR_ARGCMIN_NSAT;
+		}
+		else
+		{
+			return row.func(templates);
+		}
 	}
 	else
 	{

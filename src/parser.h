@@ -34,6 +34,7 @@ struct parser_node {
 	uint32_t		arga;
 	uint64_t		char_begin;
 	uint64_t		char_end;
+	uint32_t		line;
 	bool			finding_type;
 
 	uint32_t		length;

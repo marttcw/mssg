@@ -8,12 +8,13 @@
 enum templates_type {
 	TEMPLATE_NOT_FOUND = 0,
 	TEMPLATE_ROOT,
-	TEMPLATE_VARIABLE,
-	TEMPLATE_LOOP,
+	TEMPLATE_VARIABLE,	// Maybe rename to: GET_VAR?
+	TEMPLATE_LOOP,		// TODO
 	TEMPLATE_SET_VAR,
 	TEMPLATE_SET_BLOCK,
 	TEMPLATE_PUT_BLOCK,
 	TEMPLATE_BASE,
+	TEMPLATE_LINK,
 	TEMPLATE_END,
 
 	TEMPLATE_TOTAL
@@ -31,16 +32,20 @@ enum templates_error_codes {
 	TEMPLATE_ERROR_TOTAL
 };
 
+struct templates {
+	FILE *stream;
+	enum templates_type type;
+	uint32_t argc;
+	char **argv;
+	bool *generate_outside;
+	FILE **indirect_stream;
+	enum templates_type parent_type;
+	uint32_t parent_argc;
+	const char **parent_argv;
+};
+
 void templates_deinit(void);
-enum templates_error_codes templates(FILE *stream,
-		const enum templates_type type,
-		const uint32_t argc,
-		const char ** const argv,
-		bool *generate_outside,
-		FILE **indirect_stream,
-		const enum templates_type child_of_type,
-		const uint32_t parent_argc,
-		const char **parent_argv);
+enum templates_error_codes templates(struct templates templates);
 enum templates_type templates_str_to_type(const char *keyword);
 const char *templates_type_to_str(const enum templates_type type);
 const char *templates_error(const enum templates_error_codes code);

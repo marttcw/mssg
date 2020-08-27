@@ -98,6 +98,7 @@ parser__read_char_from_copy(struct parser *parser,
 			.arga = 0,
 			.char_begin = 0,
 			.char_end = 0,
+			.line = parser->line,
 			.finding_type = true,
 			.length = 0,
 			.alloc_length = 0,
@@ -490,10 +491,10 @@ parser__node_print(const struct parser_node *node, const uint32_t level)
 		printf("    ");
 	}
 
-	printf("type: %s | params: %d | char: %ld => %ld |"
+	printf("type: %s | params: %d | line: %d | char: %ld => %ld |"
 			" finding_type: %d | nodes: %d | ", 
 			templates_type_to_str(node->type),
-			node->argc, node->char_begin,
+			node->argc, node->line, node->char_begin,
 			node->char_end, node->finding_type, node->length);
 
 	for (uint32_t i = 0; i < node->argc; ++i)
@@ -531,7 +532,8 @@ parser__generate_node(const struct parser_node *node,
 		FILE *other_stream,
 		const enum templates_type parent_type,
 		const uint32_t parent_argc,
-		const char **parent_argv)
+		const char **parent_argv,
+		const char *filepath)
 {
 	const uint64_t cur_pos = node->char_begin;
 	const uint64_t total_len_read = cur_pos - prev_pos - 1;
@@ -571,15 +573,23 @@ parser__generate_node(const struct parser_node *node,
 	}
 
 	const enum templates_error_codes error = 
-		templates(stream, node->type, node->argc,
-			(const char ** const) node->argv,
-			&generate_outside, &other_stream,
-			parent_type, parent_argc, parent_argv);
+		templates((struct templates) {
+			.stream = stream, 
+			.type = node->type, 
+			.argc = node->argc,
+			.argv = node->argv,
+			.generate_outside = &generate_outside, 
+			.indirect_stream = &other_stream,
+			.parent_type = parent_type,
+			.parent_argc = parent_argc,
+			.parent_argv = parent_argv
+		});
 
 	if (error != TEMPLATE_ERROR_NONE &&
 			error != TEMPLATE_ERROR_NO_FUNC)
 	{
-		printf("%s\n", templates_error(error));
+		fprintf(stderr, "ERROR: '%s': %d: %s\n",
+				filepath, node->line, templates_error(error));
 	}
 
 	prev_pos = node->char_end;
@@ -589,7 +599,7 @@ parser__generate_node(const struct parser_node *node,
 		prev_pos = parser__generate_node(&node->nodes[i], stream, fp,
 				prev_pos, generate_outside, other_stream,
 				node->type, node->argc,
-				(const char **) node->argv);
+				(const char **) node->argv, filepath);
 	}
 
 	return prev_pos;
@@ -602,7 +612,7 @@ parser_generate(const struct parser *parser,
 	rewind(parser->fp);
 	const uint64_t final_pos = parser__generate_node(&parser->node,
 			stream, parser->fp, 0, true, NULL, TEMPLATE_ROOT,
-			0, NULL);
+			0, NULL, parser->filepath);
 
 	// Read final part after final template
 	char chunk[CHUNK_SIZE] = { 0 };

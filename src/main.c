@@ -19,7 +19,7 @@ main(int argc, char **argv)
 		retval = 1;
 		goto cleanup;
 	}
-	parser_print(&parser);
+	//parser_print(&parser);
 	FILE *tmp_file = tmpfile();
 	parser_generate(&parser, tmp_file);
 	minify(stdout, tmp_file);
