@@ -557,7 +557,14 @@ parser__generate_node(const struct parser_node *node,
 	// Copy over non-nodes pos
 	if (out_stream != NULL)
 	{
-		fseek(fp, prev_pos + 1, SEEK_SET);
+		if (prev_pos == 0)
+		{
+			rewind(fp);
+		}
+		else
+		{
+			fseek(fp, prev_pos + 1, SEEK_SET);
+		}
 
 		while (rem_len_read)
 		{

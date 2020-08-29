@@ -172,7 +172,7 @@ minify(FILE *out_stream, FILE *in_stream)
 	{
 		uint64_t file_position = ftell(in_stream);
 		read_size = fread(chunk, sizeof(char), CHUNK_SIZE, in_stream);
-		chunk[CHUNK_SIZE] = '\0';
+		chunk[read_size] = '\0';
 
 		if (ferror(in_stream))
 		{

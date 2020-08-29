@@ -198,6 +198,7 @@ files__traverse_dir(struct files *files,
 		char recdirpath[512] = { 0 };
 		sprintf(recdirpath, "%s/%s", dirpath, dp->d_name);
 
+		// TODO: Categories file so copy-only files are added in also
 		if ((!strcmp(dp->d_name, "config")) ||
 			((!strcmp(ext, "html") || !strcmp(ext, "css")) &&
 			 	files_allowed(files, dp->d_name) &&
