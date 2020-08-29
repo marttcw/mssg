@@ -19,7 +19,9 @@ files__file_cleanup(void *data)
 }
 
 struct files
-files_create(const char *start_dir)
+files_create(const char *start_dir,
+		const char *src_dir,
+		const char *dst_dir)
 {
 	struct files files = {
 		.list = {
@@ -32,6 +34,8 @@ files_create(const char *start_dir)
 			.cleanup = files__file_cleanup
 		},
 		.start_dir = { 0 },
+		.base_src_dir = { 0 },
+		.base_dst_dir = { 0 },
 		.allowed = {
 			.list = NULL,
 			.length = 0,
@@ -44,6 +48,14 @@ files_create(const char *start_dir)
 	};
 
 	strcpy(files.start_dir, start_dir);
+	sprintf(files.base_src_dir, "%s/%s", start_dir,
+			(src_dir[0] == '\0') ? "src" : src_dir);
+	sprintf(files.base_dst_dir, "%s/%s", start_dir,
+			(dst_dir[0] == '\0') ? "dst" : dst_dir);
+	printf("base: %s\nsrc: %s\ndst: %s\n",
+			start_dir,
+			files.base_src_dir,
+			files.base_dst_dir);
 
 	return files;
 }
@@ -52,12 +64,73 @@ void
 files_destroy(struct files *files)
 {
 	generic_list_destroy(&files->list);
+	generic_list_destroy(&files->allowed);
+}
+
+struct file *
+files_get(struct files *files,
+		const char *filepath)
+{
+	const uint32_t length = files->list.length;
+	for (uint32_t i = 0; i < length; ++i)
+	{
+		struct file *file = files->list.list[i];
+		if (!strcmp(file->path_rel, filepath))
+		{
+			return file;
+		}
+	}
+
+	return NULL;
 }
 
 struct file *
 files_next(struct files *files)
 {
-	return NULL;
+	if (files->ended)
+	{
+		files->next_index = 0;
+		files->ended = false;
+		return NULL;
+	}
+
+	if (files->next_index == (files->list.length - 1))
+	{
+		files->ended = true;
+	}
+
+	const uint32_t index = files->next_index;
+	struct file *file = files->list.list[index];
+
+	++files->next_index;
+	
+	return file;
+}
+
+struct file *
+files_get_config(struct files *files)
+{
+	return files_get(files, "config");
+}
+
+static char *
+files__get_gen(struct files *files,
+		const char *fullpath)
+{
+	static char genpath[512] = { 0 };
+
+	uint32_t i = 0;
+	while (fullpath[i] == files->base_src_dir[i])
+	{
+		++i;
+	}
+
+	sprintf(genpath, "%s%s%s",
+			files->base_dst_dir,
+			((fullpath + i)[0] == '/') ? "" : "/",
+			fullpath + i);
+
+	return genpath;
 }
 
 static void
@@ -80,7 +153,10 @@ files__add_file(struct files *files,
 	}
 	sprintf(file->path_ful, fullpath);
 	sprintf(file->path_rel, filename);
-	sprintf(file->path_gen, " ");
+	if (strcmp(filename, "config"))
+	{
+		sprintf(file->path_gen, files__get_gen(files, fullpath));
+	}
 	file->parsed = false;
 }
 

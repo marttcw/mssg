@@ -33,12 +33,19 @@ struct files {
 	char			base_src_dir[256];
 	char			base_dst_dir[256];
 	struct generic_list	allowed;
+	uint32_t		next_index;
+	bool			ended;
 };
 
-struct files files_create(const char *start_dir);
+struct files files_create(const char *start_dir,
+		const char *src_dir,
+		const char *dst_dir);
 void files_destroy(struct files *files);
 void files_traverse(struct files *files);
+struct file *files_get(struct files *files,
+		const char *filepath);
 struct file *files_next(struct files *files);
+struct file *files_get_config(struct files *files);
 void files_set_parsed(struct files *files,
 		const char *path,
 		void *parser);

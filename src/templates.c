@@ -111,7 +111,7 @@ templates_varlist_get(const char *name)
 	return NULL;
 }
 
-static FILE *
+static struct block *
 templates_block_get(const char *name)
 {
 	for (uint32_t i = 0; i < blocks.length; ++i)
@@ -120,8 +120,7 @@ templates_block_get(const char *name)
 			((struct block *)
 			 	generic_list_get(&blocks, i))->name))
 		{
-			return ((struct block *)
-					generic_list_get(&blocks, i))->stream;
+			return generic_list_get(&blocks, i);
 		}
 	}
 
@@ -168,6 +167,15 @@ templates_dettype(const char *data)
 FILE *
 templates__add_block(const char *name)
 {
+	// Find block first to override
+	struct block *has_block = templates_block_get(name);
+	if (has_block != NULL)
+	{
+		fclose(has_block->stream);
+		has_block->stream = tmpfile();
+		return has_block->stream;
+	}
+
 	struct block *block = generic_list_add(&blocks); 
 	strcpy(block->name, name);
 	block->stream = tmpfile();
@@ -231,8 +239,14 @@ templates_set_var(struct templates templates)
 		return TEMPLATE_ERROR_SETVAR_NO_TYPE;
 	}
 
-	struct variable *var = generic_list_add(&variables);
-	strcpy(var->name, name);
+	// Find var first to override
+	struct variable *var = templates_varlist_get(name);
+	if (var == NULL)
+	{	// Make a new variable
+		var = generic_list_add(&variables);
+		strcpy(var->name, name);
+	}
+
 	var->type = type;
 	switch (var->type)
 	{
@@ -264,7 +278,7 @@ templates_set_block(struct templates templates)
 static enum templates_error_codes
 templates_put_block(struct templates templates)
 {
-	FILE *file = templates_block_get(templates.argv[0]);
+	FILE *file = templates_block_get(templates.argv[0])->stream;
 	if (file)
 	{
 		file_append_file(templates.stream, file);
