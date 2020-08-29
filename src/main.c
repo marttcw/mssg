@@ -66,10 +66,19 @@ main(int argc, char **argv)
 #endif
 		FILE *tmp_file = tmpfile();
 		parser_generate(&parser, tmp_file);
-		m_mkdir(file->path_gen, 0655);
+		printf("dst file: %s\n", file->path_gen);
+		m_mkdir(file->path_gen, 0777, false);
 		FILE *dst_file = fopen(file->path_gen, "w");
-		minify(dst_file, tmp_file);
-		fclose(dst_file);
+		if (dst_file != NULL)
+		{
+			minify(dst_file, tmp_file);
+			fclose(dst_file);
+		}
+		else
+		{
+			fprintf(stderr, "ERROR: Cannot open destination file"
+					" for writing!\n");
+		}
 		fclose(tmp_file);
 		parser_destroy(&parser);
 	}

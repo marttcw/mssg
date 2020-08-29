@@ -2,8 +2,9 @@
 #define M_MKDIR_H
 
 #include <fcntl.h>
+#include <stdbool.h>
 
-extern int m_mkdir(char *dirpath, mode_t mode);
+extern int m_mkdir(char *dirpath, mode_t mode, const bool all_dir);
 
 #ifdef M_MKDIR_IMPLEMENTATION_H
 
@@ -12,7 +13,7 @@ extern int m_mkdir(char *dirpath, mode_t mode);
 #include <string.h>
 
 int
-m_mkdir(char *dirpath, mode_t mode)
+m_mkdir(char *dirpath, mode_t mode, const bool all_dir)
 {
 	char temp[strlen(dirpath)];
 	size_t i, len;
@@ -38,10 +39,13 @@ m_mkdir(char *dirpath, mode_t mode)
 		temp[j++] = dirpath[i];
 	}
 
-	temp[j] = '\0';
-	if ((ret = mkdir(temp, mode)) < 0) {
-		if (errno != 17) {
-			return ret;
+	if (all_dir)
+	{
+		temp[j] = '\0';
+		if ((ret = mkdir(temp, mode)) < 0) {
+			if (errno != 17) {
+				return ret;
+			}
 		}
 	}
 

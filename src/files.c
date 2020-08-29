@@ -167,6 +167,14 @@ files__get_file_ext(const char *filename)
 	return (!dot || dot == filename) ? "" : (dot + 1);
 }
 
+bool
+files__prefix_src(struct files *files,
+		const char *fullpath)
+{
+	return (strncmp(files->base_src_dir, fullpath,
+			strlen(files->base_src_dir)) == 0);
+}
+
 static void
 files__traverse_dir(struct files *files,
 		const char *dirpath)
@@ -192,7 +200,8 @@ files__traverse_dir(struct files *files,
 
 		if ((!strcmp(dp->d_name, "config")) ||
 			((!strcmp(ext, "html") || !strcmp(ext, "css")) &&
-			 	files_allowed(files, dp->d_name)))
+			 	files_allowed(files, dp->d_name) &&
+				files__prefix_src(files, recdirpath)))
 		{
 			//printf("%s %s %d\n", recdirpath, dp->d_name, dp->d_type);
 			files__add_file(files, recdirpath, dp->d_name, dp->d_type);
