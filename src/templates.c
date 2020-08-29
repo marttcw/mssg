@@ -214,6 +214,7 @@ templates_variable(struct templates templates)
 static enum templates_error_codes
 templates_loop(struct templates templates)
 {
+	// TODO
 	(void) templates;
 	return TEMPLATE_ERROR_NONE;
 }
@@ -279,6 +280,7 @@ templates_put_block(struct templates templates)
 static enum templates_error_codes
 templates_link(struct templates templates)
 {
+	// TODO
 	(void) templates;
 	return TEMPLATE_ERROR_NONE;
 }

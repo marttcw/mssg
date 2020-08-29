@@ -1,17 +1,29 @@
 #ifndef GENERIC_LIST_H
 #define GENERIC_LIST_H
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
+
 struct generic_list {
-	void		 	**list;
-	uint32_t		length;
-	uint32_t		allocated;
-	const uint32_t		ALLOC_CHUNK;
-	const size_t		type_size;
-	const bool		is_pointer;
-	void			(* cleanup)(void *);
+	void	 	**list;
+	uint32_t	length;
+	uint32_t	allocated;
+	const uint32_t	ALLOC_CHUNK;
+	const size_t	type_size;
+	const bool	is_pointer;
+	void		(* const cleanup)(void *);
 };
 
-static void
+extern void generic_list_expand(struct generic_list *generic_list);
+extern void *generic_list_get(struct generic_list *generic_list,
+		const uint32_t index);
+extern void *generic_list_add(struct generic_list *generic_list);
+extern void generic_list_destroy(struct generic_list *generic_list);
+
+#ifdef GENERIC_LIST_IMPLEMENTATION_H
+
+void
 generic_list_expand(struct generic_list *generic_list)
 {
 	if (generic_list->list == NULL)
@@ -41,21 +53,21 @@ generic_list_expand(struct generic_list *generic_list)
 	}
 }
 
-static void *
+void *
 generic_list_get(struct generic_list *generic_list,
 		const uint32_t index)
 {
 	return generic_list->list[index];
 }
 
-static void *
+void *
 generic_list_add(struct generic_list *generic_list)
 {
 	generic_list_expand(generic_list);
 	return generic_list->list[generic_list->length++];
 }
 
-static void
+void
 generic_list_destroy(struct generic_list *generic_list)
 {
 	for (uint32_t i = 0; i < generic_list->allocated; ++i)
@@ -67,12 +79,16 @@ generic_list_destroy(struct generic_list *generic_list)
 		free(generic_list->list[i]);
 	}
 	free(generic_list->list);
+#if 0
 	if (generic_list->is_pointer)
 	{
 		free(generic_list);
 	}
+#endif
 	generic_list = NULL;
 }
+
+#endif // GENERIC_LIST_IMPLEMENTATION_H
 
 #endif // GENERIC_LIST_H
 

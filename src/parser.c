@@ -24,7 +24,8 @@ struct parser_type_info {
 
 static char *parser_error_string[PARSER_ERROR_TOTAL] = {
 	[PARSER_ERROR_NONE] 		= "No error has occured",
-	[PARSER_ERROR_FILE_NULL] 	= "Cannot read file: File does not exists or permission not granted to read",
+	[PARSER_ERROR_FILE_NULL] 	= "Cannot read file: File does not"
+		" exists or permission not granted to read",
 	[PARSER_ERROR_FILE_ERROR]	= "Error during file reading occured"
 };
 
@@ -365,7 +366,8 @@ parser__read_char(struct parser *parser,
 enum parser_error
 parser_create(struct parser *parser,
 		const char *filepath,
-		const char *root_filepath)
+		const char *root_filepath,
+		struct files *files)
 {
 	parser->error = PARSER_ERROR_NONE;
 	parser->state = PARSER_STATE_COPY;
@@ -424,14 +426,24 @@ parser_create(struct parser *parser,
 
 	if (parser->has_base)
 	{
-		parser->base = calloc(sizeof(struct parser), 1);
 		char rb_filepath[512] = { 0 };
 		sprintf(rb_filepath, "%s%s",
 				root_filepath, parser->base_filepath);
-		parser_create(parser->base, rb_filepath, root_filepath);
+
+		struct parser *base = files_get_parser(files, rb_filepath);
+		if (base != NULL)
+		{
+			parser->base = base;
+		}
+		else
+		{
+			parser->base = calloc(sizeof(struct parser), 1);
+			parser_create(parser->base, rb_filepath, root_filepath, files);
+		}
 	}
 
 	// TODO: Add itself into the list of parsed files
+	files_set_parsed(files, filepath, parser);
 
 	return error;
 }
@@ -559,7 +571,10 @@ parser__generate_node(const struct parser_node *node,
 			{
 				rem_len_read -= CHUNK_SIZE;
 			}
-			size_t read_size = fread(chunk, sizeof(char), chunk_read, fp);
+
+			size_t read_size = fread(chunk, sizeof(char),
+					chunk_read, fp);
+
 			chunk[chunk_read] = '\0';
 
 			if (ferror(fp) || (read_size != chunk_read) ||

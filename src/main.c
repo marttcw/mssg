@@ -1,7 +1,11 @@
 #include <stdio.h>
 
+#define GENERIC_LIST_IMPLEMENTATION_H
+#include "generic_list.h"
+
 #include "parser.h"
 #include "minify.h"
+#include "files.h"
 
 int
 main(int argc, char **argv)
@@ -10,8 +14,13 @@ main(int argc, char **argv)
 	(void) argc;
 	(void) argv;
 
+	struct files files = files_create(".");
+	files_allowed_add(&files, "index.html");
+
+	files_traverse(&files);
+
 	struct parser parser = { 0 };
-	parser_create(&parser, "site/index.html", "site");
+	parser_create(&parser, "./src/index.html", "./src", &files);
 	if (parser.error != PARSER_ERROR_NONE)
 	{
 		fprintf(stderr, "Error code: %d | Message: %s\n",
@@ -29,6 +38,7 @@ cleanup:
 	parser_destroy(&parser);
 	parser_deinit();
 	templates_deinit();
+	files_destroy(&files);
 
 	return retval;
 }
