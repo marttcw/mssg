@@ -223,7 +223,31 @@ templates_variable(struct templates templates)
 static enum templates_error_codes
 templates_loop(struct templates templates)
 {
-	(void) templates;
+	const char *name = templates.argv[0];
+	const int32_t start = atoi(templates.argv[1]);
+	const int32_t end = atoi(templates.argv[2]);
+	//printf("templates_loop: %s %d %d\n", name, start, end);
+
+	struct variable *var = templates_varlist_get(name);
+	if (var == NULL)
+	{	// First execution of loop
+		var = generic_list_add(&variables);
+		strcpy(var->name, name);
+		var->type = TEMPLATE_VARTYPE_INT;
+		var->var.num_int = start;
+	}
+	else
+	{
+		++var->var.num_int;
+	}
+
+	*templates.tscondgen = 1;
+	if (var->var.num_int == end)
+	{
+		// TODO: Remove variable
+		*templates.tscondgen = 0;
+	}
+
 	return TEMPLATE_ERROR_NONE;
 }
 

@@ -504,8 +504,8 @@ parser__node_print(const struct parser_node *node, const uint32_t level)
 	}
 
 	printf("type: %s | params: %d | line: %d | char: %ld => %ld |"
-			" finding_type: %d | nodes: %d | ", 
-			templates_type_to_str(node->type),
+			" finding_type: %d | nodes: %d | "
+			, templates_type_to_str(node->type),
 			node->argc, node->line, node->char_begin,
 			node->char_end, node->finding_type, node->length);
 
@@ -535,7 +535,12 @@ parser_print(const struct parser *parser)
 	}
 }
 
-uint64_t
+struct parser__gen_retval {
+	uint64_t 	file_pos;
+	bool		looping;
+};
+
+struct parser__gen_retval
 parser__generate_node(const struct parser_node *node,
 		FILE *stream,
 		FILE *fp,
@@ -548,7 +553,8 @@ parser__generate_node(const struct parser_node *node,
 		const char *filepath,
 		const char *base_dir,
 		const char *togen_file,
-		const char *dest_dir)
+		const char *dest_dir,
+		uint32_t tscondgen)
 {
 	const uint64_t cur_pos = node->char_begin;
 	char chunk[CHUNK_SIZE] = { 0 };
@@ -614,6 +620,7 @@ parser__generate_node(const struct parser_node *node,
 			.cur_file = filepath,
 			.main_file = togen_file,
 			.dest_dir = dest_dir,
+			.tscondgen = &tscondgen,
 		});
 
 	if (error != TEMPLATE_ERROR_NONE &&
@@ -627,15 +634,25 @@ parser__generate_node(const struct parser_node *node,
 
 	for (uint32_t i = 0; i < node->length; ++i)
 	{
-		prev_pos = parser__generate_node(&node->nodes[i], stream, fp,
+		struct parser__gen_retval retval = 
+			parser__generate_node(&node->nodes[i], stream, fp,
 				prev_pos, generate_outside, other_stream,
 				node->type, node->argc,
 				(const char **) node->argv, filepath,
 				base_dir, togen_file,
-				dest_dir);
+				dest_dir, tscondgen);
+		prev_pos = retval.file_pos;
+		if (retval.looping)
+		{
+			--i;
+		}
 	}
 
-	return prev_pos;
+	return (struct parser__gen_retval) {
+			.file_pos = prev_pos,
+			.looping = ((node->type == TEMPLATE_LOOP) &&
+					(tscondgen == 1)),
+	};
 }
 
 void
@@ -646,10 +663,13 @@ parser_generate(const struct parser *parser,
 		const char *dest_dir)
 {
 	rewind(parser->fp);
-	const uint64_t final_pos = parser__generate_node(&parser->node,
+	const struct parser__gen_retval retval = parser__generate_node(
+			&parser->node,
 			stream, parser->fp, 0, true, NULL, TEMPLATE_ROOT,
 			0, NULL, parser->filepath, base_dir, togen_file,
-			dest_dir);
+			dest_dir, 0);
+
+	const uint64_t final_pos = retval.file_pos;
 
 	// Read final part after final template
 	char chunk[CHUNK_SIZE] = { 0 };

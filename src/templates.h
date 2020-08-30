@@ -46,6 +46,7 @@ struct templates {
 	const char		*cur_file;
 	const char		*main_file;
 	const char		*dest_dir;
+	uint32_t		*tscondgen; // Type-Specific generic condition
 };
 
 void templates_deinit(void);
