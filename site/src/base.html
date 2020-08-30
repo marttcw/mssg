@@ -8,8 +8,10 @@
   <body>
     <h1>{{ title }}</h1>
     <nav>
-      {% link "/" %}
-      {% link "/about/" %}
+      <ul>
+        <li>{% link "/" Home %}</li>
+        <li>{% link "/about/" About %}</li>
+      </ul>
     </nav>
     {% putblock content %}
   </body>

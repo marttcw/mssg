@@ -65,7 +65,8 @@ main(int argc, char **argv)
 		parser_print(&parser);
 #endif
 		FILE *tmp_file = tmpfile();
-		parser_generate(&parser, tmp_file);
+		parser_generate(&parser, tmp_file, files.start_dir,
+				file->path_gen, files.base_dst_dir);
 		printf("dst file: %s\n", file->path_gen);
 		m_mkdir(file->path_gen, 0777, false);
 		FILE *dst_file = fopen(file->path_gen, "w");

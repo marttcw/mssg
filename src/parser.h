@@ -67,7 +67,11 @@ enum parser_error parser_create(struct parser *parser,
 void parser_destroy(struct parser *parser);
 char *parser_error_message(const struct parser *parser);
 void parser_print(const struct parser *parser);
-void parser_generate(const struct parser *parser, FILE *stream);
+void parser_generate(const struct parser *parser,
+		FILE *stream,
+		const char *base_dir,
+		const char *togen_file,
+		const char *dest_dir);
 
 #endif // PARSER_H
 

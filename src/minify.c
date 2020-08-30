@@ -85,8 +85,8 @@ minify__rc_tloose(struct minify *minify,
 		if (minify->prev == '<')
 		{
 			minify->state = MINIFY_STATE_TAG_CLOSE;
-			show = true;
 		}
+		show = true;
 		break;
 	case ' ':
 		if (minify->prev != ch)

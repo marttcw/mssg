@@ -38,6 +38,7 @@ templates__blocks_cleanup(void *data)
 }
 
 // In-file variables
+//TODO: Move to parser?
 static struct generic_list variables = {
 	.list = NULL,
 	.length = 0,
@@ -222,7 +223,6 @@ templates_variable(struct templates templates)
 static enum templates_error_codes
 templates_loop(struct templates templates)
 {
-	// TODO
 	(void) templates;
 	return TEMPLATE_ERROR_NONE;
 }
@@ -291,11 +291,123 @@ templates_put_block(struct templates templates)
 	return TEMPLATE_ERROR_NONE;
 }
 
+static bool
+link_is_dir(const char *link)
+{
+	const uint32_t len = strlen(link);
+	if (link[len-1] == '/')
+	{
+		return true;
+	}
+
+	for (int32_t i = (len-1); i >= 0; --i)
+	{
+		if (link[i] == '.')
+		{
+			return false;
+		}
+		else if (link[i] == '/')
+		{
+			return true;
+		}
+	}
+
+	return true;
+}
+
+static uint32_t
+level_from_base(const char *base_dir,
+		const char *cur_file)
+{
+	const uint32_t len_base_dir = strlen(base_dir);
+	uint32_t base_dir_count = 0;
+
+	for (uint32_t i = 0; i < len_base_dir; ++i)
+	{
+		if (base_dir[i] == '/')
+		{
+			++base_dir_count;
+		}
+	}
+
+	if (base_dir[len_base_dir-1] != '/')
+	{
+		++base_dir_count;
+	}
+
+	const uint32_t len_cur_file = strlen(cur_file);
+	uint32_t cur_file_count = 0;
+	for (uint32_t i = 0; i < len_cur_file; ++i)
+	{
+		if (cur_file[i] == '/')
+		{
+			++cur_file_count;
+		}
+	}
+
+	return cur_file_count - base_dir_count;
+}
+
 static enum templates_error_codes
 templates_link(struct templates templates)
 {
-	// TODO
-	(void) templates;
+#if 0
+	printf("templates:\n\tbase_dir: %s\n\tmain_file: %s\n\t"
+			"dest_dir: %s\n\tlink: %s\n",
+			templates.base_dir, templates.main_file,
+			templates.dest_dir, templates.argv[0]);
+#endif
+
+	const char *link = templates.argv[0];
+	char expand[256] = { 0 };
+	char prefix[256] = { 0 };
+	char final[512] = { 0 };
+	const uint32_t len = strlen(link);
+
+	// Expand with index.html (local only)
+	if (link_is_dir(link))
+	{
+		// TODO if local testing
+		sprintf(expand, "%s%sindex.html",
+				link,
+				(link[len-1] == '/') ? "" : "/");
+	}
+	else
+	{
+		sprintf(expand, "%s", link);
+	}
+
+	if (link[0] == '/')
+	{
+		// Prefix with ../ (local only)
+		const uint32_t levels = level_from_base(templates.dest_dir,
+				templates.main_file);
+
+		for (uint32_t i = 0; i < levels; ++i)
+		{
+			strcat(prefix, "../");
+		}
+
+		sprintf(final, "%s%s", prefix, expand + 1);
+	}
+	else
+	{
+		sprintf(final, "%s", expand);
+	}
+
+#if 0
+	printf("\t\tfinal: %s\n", final);
+#endif
+	if (templates.argc >= 2)
+	{
+		fprintf(templates.stream, "<a href=\"%s\">%s</a>",
+				final, templates.argv[1]);
+	}
+	else
+	{
+		fprintf(templates.stream, "%s", final);
+	}
+
 	return TEMPLATE_ERROR_NONE;
 }
 
@@ -309,6 +421,7 @@ templates_end(struct templates templates)
 	case TEMPLATE_SET_BLOCK:
 		break;
 	case TEMPLATE_LOOP:
+		// TODO
 		break;
 	default:
 		break;

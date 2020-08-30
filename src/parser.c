@@ -545,11 +545,12 @@ parser__generate_node(const struct parser_node *node,
 		const enum templates_type parent_type,
 		const uint32_t parent_argc,
 		const char **parent_argv,
-		const char *filepath)
+		const char *filepath,
+		const char *base_dir,
+		const char *togen_file,
+		const char *dest_dir)
 {
 	const uint64_t cur_pos = node->char_begin;
-	const uint64_t total_len_read = cur_pos - prev_pos - 1;
-	uint64_t rem_len_read = total_len_read;
 	char chunk[CHUNK_SIZE] = { 0 };
 
 	FILE *out_stream = (generate_outside) ? stream : other_stream;
@@ -557,6 +558,7 @@ parser__generate_node(const struct parser_node *node,
 	// Copy over non-nodes pos
 	if (out_stream != NULL)
 	{
+		uint64_t total_len_read = cur_pos - prev_pos;
 		if (prev_pos == 0)
 		{
 			rewind(fp);
@@ -564,7 +566,10 @@ parser__generate_node(const struct parser_node *node,
 		else
 		{
 			fseek(fp, prev_pos + 1, SEEK_SET);
+			--total_len_read;
 		}
+
+		uint64_t rem_len_read = total_len_read;
 
 		while (rem_len_read)
 		{
@@ -604,7 +609,11 @@ parser__generate_node(const struct parser_node *node,
 			.indirect_stream = &other_stream,
 			.parent_type = parent_type,
 			.parent_argc = parent_argc,
-			.parent_argv = parent_argv
+			.parent_argv = parent_argv,
+			.base_dir = base_dir,
+			.cur_file = filepath,
+			.main_file = togen_file,
+			.dest_dir = dest_dir,
 		});
 
 	if (error != TEMPLATE_ERROR_NONE &&
@@ -621,7 +630,9 @@ parser__generate_node(const struct parser_node *node,
 		prev_pos = parser__generate_node(&node->nodes[i], stream, fp,
 				prev_pos, generate_outside, other_stream,
 				node->type, node->argc,
-				(const char **) node->argv, filepath);
+				(const char **) node->argv, filepath,
+				base_dir, togen_file,
+				dest_dir);
 	}
 
 	return prev_pos;
@@ -629,12 +640,16 @@ parser__generate_node(const struct parser_node *node,
 
 void
 parser_generate(const struct parser *parser,
-		FILE *stream)
+		FILE *stream,
+		const char *base_dir,
+		const char *togen_file,
+		const char *dest_dir)
 {
 	rewind(parser->fp);
 	const uint64_t final_pos = parser__generate_node(&parser->node,
 			stream, parser->fp, 0, true, NULL, TEMPLATE_ROOT,
-			0, NULL, parser->filepath);
+			0, NULL, parser->filepath, base_dir, togen_file,
+			dest_dir);
 
 	// Read final part after final template
 	char chunk[CHUNK_SIZE] = { 0 };
@@ -659,7 +674,8 @@ parser_generate(const struct parser *parser,
 
 	if (parser->has_base && (parser->base != NULL))
 	{
-		parser_generate(parser->base, stream);
+		parser_generate(parser->base, stream, base_dir, togen_file,
+				dest_dir);
 	}
 
 }

@@ -33,15 +33,19 @@ enum templates_error_codes {
 };
 
 struct templates {
-	FILE *stream;
-	enum templates_type type;
-	uint32_t argc;
-	char **argv;
-	bool *generate_outside;
-	FILE **indirect_stream;
-	enum templates_type parent_type;
-	uint32_t parent_argc;
-	const char **parent_argv;
+	FILE 			*stream;
+	enum templates_type 	type;
+	uint32_t 		argc;
+	char 			**argv;
+	bool 			*generate_outside;
+	FILE 			**indirect_stream;
+	enum templates_type 	parent_type;
+	uint32_t 		parent_argc;
+	const char 		**parent_argv;
+	const char		*base_dir;
+	const char		*cur_file;
+	const char		*main_file;
+	const char		*dest_dir;
 };
 
 void templates_deinit(void);
