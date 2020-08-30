@@ -15,6 +15,7 @@ enum vartype {
 struct variable {
 	char		name[64];
 	enum vartype	type;
+	bool		settable;
 	union {
 		int32_t	num_int;
 		double	num_double;
@@ -221,11 +222,55 @@ templates_variable(struct templates templates)
 }
 
 static enum templates_error_codes
+templates_loop__get_int(const char *data,
+		int32_t *number)
+{
+	const enum vartype type = templates_dettype(data);
+	switch (type)
+	{
+	case TEMPLATE_VARTYPE_INT:
+		*number = atoi(data);
+		break;
+	case TEMPLATE_VARTYPE_STRING:
+	{
+		struct variable *var = templates_varlist_get(data);
+		if (var == NULL)
+		{
+			return TEMPLATE_ERROR_GETVAR_NOT_FOUND;
+		}
+		*number = var->var.num_int;
+	}	break;
+	default:
+		return TEMPLATE_ERROR_SETVAR_UNUSED_TYPE;
+	}
+
+	return TEMPLATE_ERROR_NONE;
+}
+
+static enum templates_error_codes
 templates_loop(struct templates templates)
 {
 	const char *name = templates.argv[0];
-	const int32_t start = atoi(templates.argv[1]);
-	const int32_t end = atoi(templates.argv[2]);
+	int32_t start = 0;
+	int32_t end = 0;
+
+	// Move to only init stage
+	const char *start_data = templates.argv[1];
+	const char *end_data = templates.argv[2];
+
+	enum templates_error_codes error = TEMPLATE_ERROR_NONE;
+	if ((error = templates_loop__get_int(start_data, &start))
+			!= TEMPLATE_ERROR_NONE)
+	{
+		return error;
+	}
+	if ((error = templates_loop__get_int(end_data, &end))
+			!= TEMPLATE_ERROR_NONE)
+	{
+		return error;
+	}
+
+	const int32_t diff = (start <= end) ? 1 : -1;
 	//printf("templates_loop: %s %d %d\n", name, start, end);
 
 	struct variable *var = templates_varlist_get(name);
@@ -235,10 +280,13 @@ templates_loop(struct templates templates)
 		strcpy(var->name, name);
 		var->type = TEMPLATE_VARTYPE_INT;
 		var->var.num_int = start;
+		var->settable = false;
+
+		// Add into start/end pool
 	}
 	else
 	{
-		++var->var.num_int;
+		var->var.num_int += diff;
 	}
 
 	*templates.tscondgen = 1;
@@ -269,6 +317,12 @@ templates_set_var(struct templates templates)
 	{	// Make a new variable
 		var = generic_list_add(&variables);
 		strcpy(var->name, name);
+		var->settable = true;
+	}
+
+	if (!var->settable)
+	{
+		return TEMPLATE_ERROR_SETVAR_DISALLOWED;
 	}
 
 	var->type = type;
@@ -440,16 +494,13 @@ templates_end(struct templates templates)
 {
 	*templates.generate_outside = true;
 
+#if 0
 	switch (templates.parent_type)
 	{
-	case TEMPLATE_SET_BLOCK:
-		break;
-	case TEMPLATE_LOOP:
-		// TODO
-		break;
 	default:
 		break;
 	}
+#endif
 
 	*templates.indirect_stream = NULL;
 
@@ -531,7 +582,8 @@ templates_error(const enum templates_error_codes code)
 		[TEMPLATE_ERROR_SETVAR_NO_TYPE] = "set var no type",
 		[TEMPLATE_ERROR_SETVAR_UNUSED_TYPE] = "set var unused type",
 		[TEMPLATE_ERROR_GETVAR_NOT_FOUND] = "get var not found",
-		[TEMPLATE_ERROR_NO_FUNC] = "no function"
+		[TEMPLATE_ERROR_NO_FUNC] = "no function",
+		[TEMPLATE_ERROR_SETVAR_DISALLOWED] = "not settable",
 	};
 
 	return error_codes_str[code];

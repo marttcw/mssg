@@ -24,53 +24,45 @@ A lightweight and fast static site generator that have simple templating functio
 ## Uninstallation
 * `make uninstall`
 
-## Templating Features
+## Features
+### Templating
 * Variables types
   * string
-  * list
-  * dictionary
-* for loop list
-* extends/base of another file
-* `{% for post in #blog -1 %}`
-  * `{{ post.date }}`, `{{ post.title }}`, `{{ post.link }}`
+  * integer
+  * float
+* for loop
+* base of another file
+### Extra
+* Minify
 
 ## Template commands
 ```
-base: Set the following file as the base file of the current file, the rest of the current file will be added once sub_content was used in the base file.
+base: Set following file as the base file of the current file, however the rest of the variables are set before going back to the base file.
 {% base src/dir/foo.html %}
-extends: Set following file as the base file of the current file, however the rest of the variables are set before going back to the base file.
-{% extends src/dir/foo.html %}
-sub_content: Parse through the file on top of the base file, considered file is used via the base command
-{% sub_content %}
-content: Parse through the file given
-{% content src/dir/foo.html %}
+parse: Parse through the file given
+{% parse src/dir/foo.html %}
 
-string: Set a string variable
-{% string foo "hello world" %}
-block: Set a string variable, but whatever in between block and endblock are put into the variable
-{% block foo %} ... {% endblock %}
-list: Set a list
-{% list foo apple banana carrot %}
-dict: Set a dictionary
-{% dict fruit name:apple texture:crunchy %}
-EX: $variable: A pointer to another variable already defined
-{% string pointer $foo %}
+setblock: Set a block to be put when called
+{% setblock content %}{% end %}
+putblock: Put the block given
+{% putblock content %}
 
-link: Set a link string derived from the source path
-{% link src/dir/foo.css %}
+set: Set a variable
+{% set foo bar %} - String
+{% set foo 1 %} - Integer
+{% set foo 1.1 %} - Float
+{% set foo .num 15 .stuff 20 %} - Dictionary (TODO)
 
-For loop: Loop through a list variable
-{% for item in list %}
-  {{ item }}
-{% endfor %}
+Get variable
+{{ foo }}
 
-For loop optionals:
-{% for item in list (range) (increment) (start) %}
-{% for item in list -1 1 0 %}
-Where range of -1 = to maximum range of the list
+link: Set a link string derived from the source+destination root path
+{% link /foo.html %} - Produce just the link
+{% link /foo.html Foo %} - Produce a href link tag
 
-copy: Filenames which can just be simply copied over to the build side
-{% copy style.css rss.xml %}
+loop: For loop: EX: i start on foo to 5
+{% loop i foo 5 %}
+{% end %}
 ```
 
 ### Pre-defined variables
@@ -94,7 +86,7 @@ blog editor vim
 ## TODO
 * Rework
 * Templating - Doing
-  * for loop - Done?
+  * for loop - Done
 * Hashmap implementation - Done
 * Static blogging feature - Doing
   * `blog new test` - Create a new blog post - Done
@@ -108,8 +100,13 @@ blog editor vim
 * For loop a list of strings - Done
 * For loop a list of dictionary - Done
 * Point to another variable (EX: `{% list fruit $apple $banana $other %}`) - Done? Need further testing
+* Minify CSS + JS
 
 ## Changelogs
+### 2020-08-30: v0.0.2 - Rework
+* Templating completely changed
+* Parsing different
+* Minify HTML works
 ### 2020-08-01: v0.0.2 - Rework
 * Make replaced ninja for compiling, etc...
 * Rework starts

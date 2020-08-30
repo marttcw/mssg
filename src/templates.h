@@ -28,6 +28,7 @@ enum templates_error_codes {
 	TEMPLATE_ERROR_SETVAR_UNUSED_TYPE,	// Var setter not using the type
 	TEMPLATE_ERROR_GETVAR_NOT_FOUND,	// Var not found
 	TEMPLATE_ERROR_NO_FUNC,		// No function
+	TEMPLATE_ERROR_SETVAR_DISALLOWED,	// Var setter not allowed
 
 	TEMPLATE_ERROR_TOTAL
 };

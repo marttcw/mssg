@@ -1,5 +1,7 @@
 {% set title "Hello World" %}
 {% base "/base.html" %}
+{% set start 25 %}
+{% set end 15 %}
 {% setblock content %}
   <p>
     Blah blah blah blah blah
@@ -12,7 +14,7 @@ main(int argc, char **argv)
   return 0;
 }
 </pre>
-  {% loop i 0 5 %}
+  {% loop i start end %}
     <p>
       {{ i }} - Testing 123 456
     </p>
