@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "generic_list.h"
+#include "hashmap.h"
 
 enum vartype {
 	TEMPLATE_VARTYPE_INT = 0,
@@ -13,7 +13,6 @@ enum vartype {
 };
 
 struct variable {
-	char		name[64];
 	enum vartype	type;
 	bool		settable;
 	union {
@@ -24,7 +23,6 @@ struct variable {
 };
 
 struct block {
-	char	name[256];
 	FILE	*stream;
 };
 
@@ -40,25 +38,10 @@ templates__blocks_cleanup(void *data)
 
 // In-file variables
 //TODO: Move to parser?
-static struct generic_list variables = {
-	.list = NULL,
-	.length = 0,
-	.allocated = 0,
-	.ALLOC_CHUNK = 16,
-	.type_size = sizeof(struct variable),
-	.is_pointer = false,
-	.cleanup = NULL
-};
-
-static struct generic_list blocks = {
-	.list = NULL,
-	.length = 0,
-	.allocated = 0,
-	.ALLOC_CHUNK = 16,
-	.type_size = sizeof(struct block),
-	.is_pointer = false,
-	.cleanup = templates__blocks_cleanup
-};
+static struct hashmap variables = HASHMAP_STRUCT_INIT(16, 8,
+		struct variable, NULL);
+static struct hashmap blocks = HASHMAP_STRUCT_INIT(16, 8,
+		struct variable, templates__blocks_cleanup);
 
 enum templates_argc_min {
 	TEMPLATE_ARGCMIN_NOT_FOUND = 0,
@@ -100,41 +83,19 @@ file_append_file(FILE *out, FILE *in)
 static struct variable *
 templates_varlist_get(const char *name)
 {
-	for (uint32_t i = 0; i < variables.length; ++i)
-	{
-		if (!strcmp(name,
-			((struct variable *)
-			 	generic_list_get(&variables, i))->name))
-		{
-			return generic_list_get(&variables, i);
-		}
-	}
-
-	return NULL;
+	return hashmap_get(&variables, name);
 }
 
 static struct block *
 templates_block_get(const char *name)
 {
-	for (uint32_t i = 0; i < blocks.length; ++i)
-	{
-		if (!strcmp(name,
-			((struct block *)
-			 	generic_list_get(&blocks, i))->name))
-		{
-			return generic_list_get(&blocks, i);
-		}
-	}
-
-	return NULL;
+	return hashmap_get(&blocks, name);
 }
 
 static enum vartype
 templates_dettype(const char *data)
 {
-	const uint32_t length = strlen(data);
-	uint32_t tfloat = 0;
-	uint32_t tint = 0;
+	const uint32_t length = strlen(data); uint32_t tfloat = 0; uint32_t tint = 0;
 
 	for (uint32_t i = 0; i < length; ++i)
 	{
@@ -178,8 +139,7 @@ templates__add_block(const char *name)
 		return has_block->stream;
 	}
 
-	struct block *block = generic_list_add(&blocks); 
-	strcpy(block->name, name);
+	struct block *block = hashmap_add(&blocks, name); 
 	block->stream = tmpfile();
 	return block->stream;
 }
@@ -187,8 +147,8 @@ templates__add_block(const char *name)
 void
 templates_deinit(void)
 {
-	generic_list_destroy(&variables);
-	generic_list_destroy(&blocks);
+	hashmap_destroy(&variables);
+	hashmap_destroy(&blocks);
 }
 
 static enum templates_error_codes
@@ -276,8 +236,7 @@ templates_loop(struct templates templates)
 	struct variable *var = templates_varlist_get(name);
 	if (var == NULL)
 	{	// First execution of loop
-		var = generic_list_add(&variables);
-		strcpy(var->name, name);
+		var = hashmap_add(&variables, name);
 		var->type = TEMPLATE_VARTYPE_INT;
 		var->var.num_int = start;
 		var->settable = false;
@@ -315,8 +274,7 @@ templates_set_var(struct templates templates)
 	struct variable *var = templates_varlist_get(name);
 	if (var == NULL)
 	{	// Make a new variable
-		var = generic_list_add(&variables);
-		strcpy(var->name, name);
+		var = hashmap_add(&variables, name);
 		var->settable = true;
 	}
 

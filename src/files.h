@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 #include "generic_list.h"
+#include "hashmap.h"
 
 enum ftype {
 	FTYPE_GEN = 0,
@@ -24,7 +25,7 @@ struct file {
 };
 
 struct file_allowed {
-	char		filename[256];
+	char a;
 };
 
 struct files {
@@ -32,7 +33,7 @@ struct files {
 	char			start_dir[256];
 	char			base_src_dir[256];
 	char			base_dst_dir[256];
-	struct generic_list	allowed;
+	struct hashmap		allowed;
 	uint32_t		next_index;
 	bool			ended;
 };

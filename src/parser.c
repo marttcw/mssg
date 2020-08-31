@@ -53,7 +53,6 @@ parser__read_char_copy(struct parser *parser,
 		parser->state = PARSER_STATE_FROM_COPY;
 		break;
 	default:
-		// TODO: Copy over
 		break;
 	}
 }

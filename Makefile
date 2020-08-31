@@ -40,7 +40,7 @@ debug:
 
 test:
 	@echo make test build
-	@${CC} -o unit_test ${LINKS} ${INCLUDES} ${CFLAGS} ${PKG_CFG} ${CFLAGS_DEBUG} ${SRC_TEST} ${SRC}
+	@${CC} -o unit_test ${LINKS} ${INCLUDES} ${CFLAGS} ${PKG_CFG} ${CFLAGS_DEBUG} ${SRC_TEST}
 #@./unit_test
 #@rm unit_test
 

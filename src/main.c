@@ -3,6 +3,9 @@
 #define GENERIC_LIST_IMPLEMENTATION_H
 #include "generic_list.h"
 
+#define HASHMAP_IMPLEMENTATION_H
+#include "hashmap.h"
+
 #include "parser.h"
 #include "minify.h"
 #include "files.h"

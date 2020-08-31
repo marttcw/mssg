@@ -36,15 +36,10 @@ files_create(const char *start_dir,
 		.start_dir = { 0 },
 		.base_src_dir = { 0 },
 		.base_dst_dir = { 0 },
-		.allowed = {
-			.list = NULL,
-			.length = 0,
-			.allocated = 0,
-			.ALLOC_CHUNK = 16,
-			.type_size = sizeof(struct file_allowed),
-			.is_pointer = false,
-			.cleanup = NULL
-		},
+		.allowed = HASHMAP_STRUCT_INIT(10, 8,
+				struct file_allowed, NULL),
+		.next_index = 0,
+		.ended = false,
 	};
 
 	strcpy(files.start_dir, start_dir);
@@ -64,7 +59,7 @@ void
 files_destroy(struct files *files)
 {
 	generic_list_destroy(&files->list);
-	generic_list_destroy(&files->allowed);
+	hashmap_destroy(&files->allowed);
 }
 
 struct file *
@@ -262,26 +257,13 @@ bool
 files_allowed(struct files *files,
 		const char *filename)
 {
-	const uint32_t length = files->allowed.length;
-	for (uint32_t i = 0; i < length; ++i)
-	{
-		struct file_allowed *allowed = generic_list_get(
-				&files->allowed, i);
-
-		if (!strcmp(allowed->filename, filename))
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return (hashmap_get(&files->allowed, filename) != NULL);
 }
 
 void
 files_allowed_add(struct files *files,
 		const char *filename)
 {
-	struct file_allowed *allowed = generic_list_add(&files->allowed);
-	strcpy(allowed->filename, filename);
+	hashmap_add(&files->allowed, filename);
 }
 
