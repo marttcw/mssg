@@ -76,6 +76,8 @@ config__add_param(struct config *config)
 		}
 	}
 
+	config->param[config->param_length] = '\0';
+
 	const uint32_t index = line->argc++;
 	line->argl[index] = config->param_length;
 	strcpy(line->argv[index], config->param);

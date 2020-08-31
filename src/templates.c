@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "hashmap.h"
+#include "copy.h"
 
 enum vartype {
 	TEMPLATE_VARTYPE_INT = 0,
@@ -41,20 +42,6 @@ templates__blocks_cleanup(void *data)
 
 static struct hashmap variables = { 0 };
 static struct hashmap blocks = { 0 };
-
-enum templates_argc_min {
-	TEMPLATE_ARGCMIN_NOT_FOUND = 0,
-	TEMPLATE_ARGCMIN_ROOT = 0,
-	TEMPLATE_ARGCMIN_VARIABLE = 1,
-	TEMPLATE_ARGCMIN_LOOP = 3,
-	TEMPLATE_ARGCMIN_SET_VAR = 2,
-	TEMPLATE_ARGCMIN_SET_BLOCK = 1,
-	TEMPLATE_ARGCMIN_PUT_BLOCK = 1,
-	TEMPLATE_ARGCMIN_BASE = 1,
-	TEMPLATE_ARGCMIN_LINK = 1,
-	TEMPLATE_ARGCMIN_END = 0,
-	TEMPLATE_ARGCMIN_COPY = 1,
-};
 
 void
 file_append_file(FILE *out, FILE *in)
@@ -480,6 +467,16 @@ templates_copy(struct templates templates)
 	return TEMPLATE_ERROR_NONE;
 }
 
+static enum templates_error_codes
+templates_copy_ignore(struct templates templates)
+{
+	for (uint32_t i = 0; i < templates.argc; ++i)
+	{
+		copy_ignore(templates.argv[i]);
+	}
+	return TEMPLATE_ERROR_NONE;
+}
+
 struct templates_type_info {
 	const char 			*keyword;
 	const uint32_t			max_params;
@@ -489,17 +486,18 @@ struct templates_type_info {
 static const struct templates_type_info templates_table[TEMPLATE_TOTAL] = {
 	// enum templates_type	const char *	int32_t	function
 	// 			keyword		max_p.
-	[TEMPLATE_NOT_FOUND] 	= { NULL,	TEMPLATE_ARGCMIN_NOT_FOUND,	NULL },
-	[TEMPLATE_ROOT] 	= { NULL,	TEMPLATE_ARGCMIN_ROOT,		NULL },
-	[TEMPLATE_VARIABLE] 	= { "var",	TEMPLATE_ARGCMIN_VARIABLE,	templates_variable },
-	[TEMPLATE_LOOP] 	= { "loop",	TEMPLATE_ARGCMIN_LOOP,		templates_loop },
-	[TEMPLATE_SET_VAR] 	= { "set", 	TEMPLATE_ARGCMIN_SET_VAR,	templates_set_var },
-	[TEMPLATE_SET_BLOCK]	= { "setblock",	TEMPLATE_ARGCMIN_SET_BLOCK,	templates_set_block },
-	[TEMPLATE_PUT_BLOCK]	= { "putblock",	TEMPLATE_ARGCMIN_PUT_BLOCK,	templates_put_block },
-	[TEMPLATE_BASE]		= { "base",	TEMPLATE_ARGCMIN_BASE,		NULL },
-	[TEMPLATE_LINK]		= { "link",	TEMPLATE_ARGCMIN_LINK,		templates_link },
-	[TEMPLATE_END]		= { "end",	TEMPLATE_ARGCMIN_END,		templates_end },
-	[TEMPLATE_COPY]		= { "copy",	TEMPLATE_ARGCMIN_COPY,		templates_copy },
+	[TEMPLATE_NOT_FOUND] 	= { NULL,	0,	NULL },
+	[TEMPLATE_ROOT] 	= { NULL,	0,	NULL },
+	[TEMPLATE_VARIABLE] 	= { "var",	1,	templates_variable },
+	[TEMPLATE_LOOP] 	= { "loop",	3,	templates_loop },
+	[TEMPLATE_SET_VAR] 	= { "set", 	2,	templates_set_var },
+	[TEMPLATE_SET_BLOCK]	= { "setblock",	1,	templates_set_block },
+	[TEMPLATE_PUT_BLOCK]	= { "putblock",	1,	templates_put_block },
+	[TEMPLATE_BASE]		= { "base",	1,	NULL },
+	[TEMPLATE_LINK]		= { "link",	1,	templates_link },
+	[TEMPLATE_END]		= { "end",	0,	templates_end },
+	[TEMPLATE_COPY]		= { "copy",	1,	templates_copy },
+	[TEMPLATE_COPY_IGNORE]	= { "copy_ignore", 1,	templates_copy_ignore },
 };
 
 enum templates_type

@@ -19,6 +19,7 @@ enum templates_type {
 
 	// Config file only
 	TEMPLATE_COPY,
+	TEMPLATE_COPY_IGNORE,
 
 	TEMPLATE_TOTAL
 };

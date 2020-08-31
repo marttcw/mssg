@@ -30,7 +30,6 @@ main(int argc, char **argv)
 
 	files_traverse(&files);
 
-#if 1
 	struct file *config_file = files_get_config(&files);
 	if (config_file != NULL)
 	{
@@ -47,7 +46,6 @@ main(int argc, char **argv)
 	{
 		printf("Config file not found!\n");
 	}
-#endif
 
 	// Go through the files
 	for (struct file *file = NULL;

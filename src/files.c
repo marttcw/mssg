@@ -60,7 +60,7 @@ files_get(struct files *files,
 	for (uint32_t i = 0; i < length; ++i)
 	{
 		struct file *file = files->list.list[i];
-		if (!strcmp(file->path_rel, filepath))
+		if (!strcmp(file->path_ful, filepath))
 		{
 			return file;
 		}
@@ -95,7 +95,9 @@ files_next(struct files *files)
 struct file *
 files_get_config(struct files *files)
 {
-	return files_get(files, "config");
+	static char tmp[312] = { 0 };
+	sprintf(tmp, "%s/config", files->start_dir);
+	return files_get(files, tmp);
 }
 
 static char *
