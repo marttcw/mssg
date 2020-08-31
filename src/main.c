@@ -1,19 +1,17 @@
 #include <stdio.h>
+#include <string.h>
 
 #define GENERIC_LIST_IMPLEMENTATION_H
 #include "generic_list.h"
-
 #define HASHMAP_IMPLEMENTATION_H
 #include "hashmap.h"
+#define M_MKDIR_IMPLEMENTATION_H
+#include "m_mkdir.h"
 
 #include "parser.h"
 #include "minify.h"
 #include "files.h"
-
-#define M_MKDIR_IMPLEMENTATION_H
-#include "m_mkdir.h"
-
-#include <string.h>
+#include "config.h"
 
 int
 main(int argc, char **argv)
@@ -22,19 +20,32 @@ main(int argc, char **argv)
 	(void) argc;
 	(void) argv;
 
+	templates_init();
+
+	struct config config = { 0 };
+	config_create(&config);
+
 	struct files files = files_create(".", "", "");
 	files_allowed_add(&files, "index.html");
 
 	files_traverse(&files);
 
-#if 0
+#if 1
 	struct file *config_file = files_get_config(&files);
 	if (config_file != NULL)
 	{
+#if 0
 		printf("file: %d %s %s %s\n",
 				config_file->type, config_file->path_ful,
 				config_file->path_rel,
 				config_file->path_gen);
+#endif
+		config_parser(&config, config_file->path_ful);
+		config_print(&config);
+	}
+	else
+	{
+		printf("Config file not found!\n");
 	}
 #endif
 
@@ -91,6 +102,7 @@ cleanup:
 	parser_deinit();
 	templates_deinit();
 	files_destroy(&files);
+	config_destroy(&config);
 
 	return retval;
 }

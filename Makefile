@@ -10,6 +10,7 @@ src/log.c
 src/templates.c
 src/minify.c
 src/files.c
+src/config.c
 endef
 
 SRC := $(strip ${SRC})

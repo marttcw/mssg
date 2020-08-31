@@ -17,6 +17,9 @@ enum templates_type {
 	TEMPLATE_LINK,
 	TEMPLATE_END,
 
+	// Config file only
+	TEMPLATE_COPY,
+
 	TEMPLATE_TOTAL
 };
 
@@ -50,6 +53,7 @@ struct templates {
 	uint32_t		*tscondgen; // Type-Specific generic condition
 };
 
+void templates_init(void);
 void templates_deinit(void);
 enum templates_error_codes templates(struct templates templates);
 enum templates_type templates_str_to_type(const char *keyword);

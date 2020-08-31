@@ -38,10 +38,9 @@ templates__blocks_cleanup(void *data)
 
 // In-file variables
 //TODO: Move to parser?
-static struct hashmap variables = HASHMAP_STRUCT_INIT(16, 8,
-		struct variable, NULL);
-static struct hashmap blocks = HASHMAP_STRUCT_INIT(16, 8,
-		struct variable, templates__blocks_cleanup);
+
+static struct hashmap variables = { 0 };
+static struct hashmap blocks = { 0 };
 
 enum templates_argc_min {
 	TEMPLATE_ARGCMIN_NOT_FOUND = 0,
@@ -54,6 +53,7 @@ enum templates_argc_min {
 	TEMPLATE_ARGCMIN_BASE = 1,
 	TEMPLATE_ARGCMIN_LINK = 1,
 	TEMPLATE_ARGCMIN_END = 0,
+	TEMPLATE_ARGCMIN_COPY = 1,
 };
 
 void
@@ -142,6 +142,14 @@ templates__add_block(const char *name)
 	struct block *block = hashmap_add(&blocks, name); 
 	block->stream = tmpfile();
 	return block->stream;
+}
+
+void
+templates_init(void)
+{
+	hashmap_create(&variables, 16, 8, sizeof(struct variable), NULL);
+	hashmap_create(&blocks, 16, 8, sizeof(struct block),
+			templates__blocks_cleanup);
 }
 
 void
@@ -465,6 +473,13 @@ templates_end(struct templates templates)
 	return TEMPLATE_ERROR_NONE;
 }
 
+static enum templates_error_codes
+templates_copy(struct templates templates)
+{
+	(void) templates;
+	return TEMPLATE_ERROR_NONE;
+}
+
 struct templates_type_info {
 	const char 			*keyword;
 	const uint32_t			max_params;
@@ -484,6 +499,7 @@ static const struct templates_type_info templates_table[TEMPLATE_TOTAL] = {
 	[TEMPLATE_BASE]		= { "base",	TEMPLATE_ARGCMIN_BASE,		NULL },
 	[TEMPLATE_LINK]		= { "link",	TEMPLATE_ARGCMIN_LINK,		templates_link },
 	[TEMPLATE_END]		= { "end",	TEMPLATE_ARGCMIN_END,		templates_end },
+	[TEMPLATE_COPY]		= { "copy",	TEMPLATE_ARGCMIN_COPY,		templates_copy },
 };
 
 enum templates_type

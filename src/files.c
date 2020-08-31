@@ -12,35 +12,25 @@ enum {
 	FDP_FIL = 8
 };
 
-static void
-files__file_cleanup(void *data)
-{
-	(void) data;
-}
-
 struct files
 files_create(const char *start_dir,
 		const char *src_dir,
 		const char *dst_dir)
 {
 	struct files files = {
-		.list = {
-			.list = NULL,
-			.length = 0,
-			.allocated = 0,
-			.ALLOC_CHUNK = 16,
-			.type_size = sizeof(struct file),
-			.is_pointer = false,
-			.cleanup = files__file_cleanup
-		},
+		.list = { 0 },
 		.start_dir = { 0 },
 		.base_src_dir = { 0 },
 		.base_dst_dir = { 0 },
-		.allowed = HASHMAP_STRUCT_INIT(10, 8,
-				struct file_allowed, NULL),
+		.allowed = { 0 },
 		.next_index = 0,
 		.ended = false,
 	};
+
+	generic_list_create(&files.list, 16,
+			sizeof(struct file), NULL);
+	hashmap_create(&files.allowed, 10, 8,
+			sizeof(struct file_allowed), NULL);
 
 	strcpy(files.start_dir, start_dir);
 	sprintf(files.base_src_dir, "%s/%s", start_dir,

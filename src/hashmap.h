@@ -36,15 +36,6 @@ extern void *hashmap_add(struct hashmap *hashmap,
 		const char *key);
 extern void hashmap_destroy(struct hashmap *hashmap);
 
-#define HASHMAP_STRUCT_INIT(m_vert_length, m_horz_alloc_chunk, m_type,\
-		m_cleanup) { \
-		.map = NULL, \
-		.vert_length = m_vert_length, \
-		.horz_alloc_chunk = m_horz_alloc_chunk, \
-		.type_size = sizeof(m_type), \
-		.cleanup = m_cleanup, \
-	}
-
 #ifdef HASHMAP_IMPLEMENTATION_H
 
 static uint32_t
@@ -100,7 +91,7 @@ hashmap_create(struct hashmap *hashmap,
 		const uint32_t vert_length,
 		const uint32_t horz_alloc_chunk,
 		const size_t type_size,
-		void (* cleanup)(void *))
+		void (* const cleanup)(void *))
 {
 	hashmap->map = NULL;
 	hashmap->vert_length = vert_length;
