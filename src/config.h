@@ -36,6 +36,9 @@ void config_destroy(struct config *config);
 void config_parser(struct config *config,
 		const char *filepath);
 void config_print(struct config *config);
+void config_template(struct config *config,
+		const char *base_dir,
+		const char *src_dir);
 
 #endif // CONFIG_H
 

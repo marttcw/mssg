@@ -12,6 +12,7 @@
 #include "minify.h"
 #include "files.h"
 #include "config.h"
+#include "copy.h"
 
 int
 main(int argc, char **argv)
@@ -21,14 +22,16 @@ main(int argc, char **argv)
 	(void) argv;
 
 	templates_init();
+	copy_init();
 
 	struct config config = { 0 };
 	config_create(&config);
 
 	struct files files = files_create(".", "", "");
-	files_allowed_add(&files, "index.html");
+	//files_allowed_add(&files, "index.html");
 
 	files_traverse(&files);
+	//files_print(&files);
 
 	struct file *config_file = files_get_config(&files);
 	if (config_file != NULL)
@@ -40,7 +43,8 @@ main(int argc, char **argv)
 				config_file->path_gen);
 #endif
 		config_parser(&config, config_file->path_ful);
-		config_print(&config);
+		//config_print(&config);
+		config_template(&config, files.start_dir, files.base_src_dir);
 	}
 	else
 	{
@@ -56,6 +60,13 @@ main(int argc, char **argv)
 		{	// Skip over configuration file
 			continue;
 		}
+		else if (copy_ignore_this(file->path_rel, COPY_FTYPE_FILENAME))
+		{
+			printf("\nIgnored: %s\n", file->path_rel);
+			continue;
+		}
+
+		printf("\nMain parsing file: %s\n", file->path_rel);
 
 #if 0
 		printf("file: %d %s %s %s\n",
@@ -64,7 +75,7 @@ main(int argc, char **argv)
 #endif
 		struct parser parser = { 0 };
 		parser_create(&parser, file->path_ful, files.base_src_dir,
-				&files);
+				&files, false);
 		if (parser.error != PARSER_ERROR_NONE)
 		{
 			fprintf(stderr, "Error code: %d | Message: %s\n",
@@ -84,7 +95,7 @@ main(int argc, char **argv)
 		FILE *dst_file = fopen(file->path_gen, "w");
 		if (dst_file != NULL)
 		{
-			minify(dst_file, tmp_file);
+			minify(dst_file, tmp_file, file->ext);
 			fclose(dst_file);
 		}
 		else
@@ -98,6 +109,7 @@ main(int argc, char **argv)
 
 cleanup:
 	parser_deinit();
+	copy_deinit();
 	templates_deinit();
 	files_destroy(&files);
 	config_destroy(&config);

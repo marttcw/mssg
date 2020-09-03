@@ -57,13 +57,15 @@ struct parser {
 	bool			has_base;
 	char			base_filepath[256];
 	struct parser		*base;
+	bool			dyn_alloc;
 };
 
 void parser_deinit(void);
 enum parser_error parser_create(struct parser *parser,
 		const char *filepath,
 		const char *root_filepath,
-		struct files *files);
+		struct files *files,
+		const bool dyn_alloc);
 void parser_destroy(struct parser *parser);
 char *parser_error_message(const struct parser *parser);
 void parser_print(const struct parser *parser);

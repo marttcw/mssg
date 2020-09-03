@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <dirent.h>
 
+#include "parser.h"
+
 enum {
 	FDP_DIR = 4,
 	FDP_FIL = 8
@@ -48,6 +50,16 @@ files_create(const char *start_dir,
 void
 files_destroy(struct files *files)
 {
+	const uint32_t length = files->list.length;
+	for (uint32_t i = 0; i < length; ++i)
+	{
+		struct file *file = generic_list_get(&files->list, i);
+		if (file != NULL && file->parser != NULL)
+		{
+			parser_destroy(file->parser);
+		}
+	}
+
 	generic_list_destroy(&files->list);
 	hashmap_destroy(&files->allowed);
 }
@@ -120,6 +132,13 @@ files__get_gen(struct files *files,
 	return genpath;
 }
 
+static char *
+files__get_file_ext(const char *filename)
+{
+	char *dot = strrchr(filename, '.');
+	return (!dot || dot == filename) ? "" : (dot + 1);
+}
+
 static void
 files__add_file(struct files *files,
 		const char *fullpath,
@@ -145,13 +164,7 @@ files__add_file(struct files *files,
 		sprintf(file->path_gen, files__get_gen(files, fullpath));
 	}
 	file->parsed = false;
-}
-
-static char *
-files__get_file_ext(const char *filename)
-{
-	char *dot = strrchr(filename, '.');
-	return (!dot || dot == filename) ? "" : (dot + 1);
+	strcpy(file->ext, files__get_file_ext(filename));
 }
 
 bool
@@ -188,7 +201,6 @@ files__traverse_dir(struct files *files,
 		// TODO: Categories file so copy-only files are added in also
 		if ((!strcmp(dp->d_name, "config")) ||
 			((!strcmp(ext, "html") || !strcmp(ext, "css")) &&
-			 	files_allowed(files, dp->d_name) &&
 				files__prefix_src(files, recdirpath)))
 		{
 			//printf("%s %s %d\n", recdirpath, dp->d_name, dp->d_type);
@@ -257,5 +269,20 @@ files_allowed_add(struct files *files,
 		const char *filename)
 {
 	hashmap_add(&files->allowed, filename);
+}
+
+void
+files_print(struct files *files)
+{
+	for (struct file *file = NULL;
+			(file = files_next(files)) != NULL;
+	    )
+	{
+		printf("%d: '%s' '%s' => '%s'\n",
+				file->type,
+				file->path_ful,
+				file->path_rel,
+				file->path_gen);
+	}
 }
 

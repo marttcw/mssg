@@ -22,6 +22,7 @@ struct file {
 	char		path_gen[256];
 	bool		parsed;
 	void		*parser;
+	char		ext[64];
 };
 
 struct file_allowed {
@@ -56,6 +57,7 @@ bool files_allowed(struct files *files,
 		const char *filename);
 void files_allowed_add(struct files *files,
 		const char *filename);
+void files_print(struct files *files);
 
 #endif // FILES_H
 

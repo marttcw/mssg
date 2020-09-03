@@ -366,7 +366,8 @@ enum parser_error
 parser_create(struct parser *parser,
 		const char *filepath,
 		const char *root_filepath,
-		struct files *files)
+		struct files *files,
+		const bool dyn_alloc)
 {
 	parser->error = PARSER_ERROR_NONE;
 	parser->state = PARSER_STATE_COPY;
@@ -385,6 +386,7 @@ parser_create(struct parser *parser,
 	parser->has_base = false;
 	parser->base_filepath[0] = '\0';
 	parser->base = NULL;
+	parser->dyn_alloc = dyn_alloc;
 
 	printf("Parsing: %s\n", filepath);
 
@@ -437,7 +439,8 @@ parser_create(struct parser *parser,
 		else
 		{
 			parser->base = calloc(sizeof(struct parser), 1);
-			parser_create(parser->base, rb_filepath, root_filepath, files);
+			parser_create(parser->base, rb_filepath, root_filepath, files,
+					true);
 		}
 	}
 
@@ -451,11 +454,13 @@ static void
 parser__destroy_node(struct parser_node *node)
 {
 	free(node->argl);
+	node->argl = NULL;
 	for (uint32_t i = 0; i < node->arga; ++i)
 	{
 		free(node->argv[i]);
 	}
 	free(node->argv);
+	node->argv = NULL;
 
 	for (uint32_t i = 0; i < node->length; ++i)
 	{
@@ -479,13 +484,22 @@ parser_destroy(struct parser *parser)
 	if (parser->fp != NULL)
 	{
 		fclose(parser->fp);
+		parser->fp = NULL;
 	}
 
-	if (parser->has_base)
+	if (parser->dyn_alloc)
+	{
+		free(parser);
+		parser = NULL;
+	}
+
+#if 0
+	if (parser->has_base && parser->base != NULL)
 	{
 		parser_destroy(parser->base);
 		free(parser->base);
 	}
+#endif
 }
 
 char *
@@ -674,7 +688,14 @@ parser_generate(const struct parser *parser,
 	char chunk[CHUNK_SIZE] = { 0 };
 
 	// Copy over non-nodes pos
-	fseek(parser->fp, final_pos + 1, SEEK_SET);
+	if (final_pos == 0)
+	{
+		rewind(parser->fp);
+	}
+	else
+	{
+		fseek(parser->fp, final_pos + 1, SEEK_SET);
+	}
 	size_t read_size = CHUNK_SIZE;
 
 	while (read_size == CHUNK_SIZE)

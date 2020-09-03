@@ -75,7 +75,13 @@ void *
 generic_list_get(struct generic_list *generic_list,
 		const uint32_t index)
 {
-	return generic_list->list[index];
+	if (generic_list->list == NULL)
+	{
+		return NULL;
+	}
+
+	return (index < generic_list->length) ?
+		generic_list->list[index] : NULL;
 }
 
 void *

@@ -156,7 +156,7 @@ minify__rc(struct minify *minify,
 }
 
 void
-minify(FILE *out_stream, FILE *in_stream)
+minify(FILE *out_stream, FILE *in_stream, const char *ext)
 {
 	size_t read_size = CHUNK_SIZE;
 	char chunk[CHUNK_SIZE + 1] = { 0 };
@@ -165,6 +165,7 @@ minify(FILE *out_stream, FILE *in_stream)
 		.level = 0,
 		.level_state[0] = MINIFY_STATE_OUT
 	};
+	const bool do_minify = (strcmp(ext, "html") == 0);
 
 	rewind(in_stream);
 
@@ -185,7 +186,7 @@ minify(FILE *out_stream, FILE *in_stream)
 		{
 			// Parse the character
 			minify.current_file_position = file_position;
-			if (minify__rc(&minify, chunk[i]))
+			if (!do_minify || minify__rc(&minify, chunk[i]))
 			{
 				nchunk[j++] = chunk[i];
 			}

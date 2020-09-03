@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-void minify(FILE *out_stream, FILE *in_stream);
+void minify(FILE *out_stream, FILE *in_stream, const char *ext);
 
 #endif // MINIFY_H
 

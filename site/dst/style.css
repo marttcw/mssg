@@ -1,0 +1,36 @@
+body {
+  background-color: #EEE;
+  color: #111;
+  max-width: 960px;
+  font-family: arial;
+  margin: 2em auto;
+}
+
+nav, footer, .content {
+  padding: 1em;
+  display: block;
+}
+
+nav h1 {
+  display: inline;
+  padding-right: 1em;
+}
+
+nav a {
+  padding-right: 0.5em;
+}
+
+a {
+  color: #0000ff;
+}
+
+a:hover {
+  color: #0088cc;
+}
+
+dt, dl {
+  padding: 0.5em;
+}
+
+
+

@@ -39,7 +39,6 @@ templates__blocks_cleanup(void *data)
 
 // In-file variables
 //TODO: Move to parser?
-
 static struct hashmap variables = { 0 };
 static struct hashmap blocks = { 0 };
 
@@ -472,20 +471,17 @@ templates_copy_ignore(struct templates templates)
 {
 	for (uint32_t i = 0; i < templates.argc; ++i)
 	{
-		copy_ignore(templates.argv[i]);
+		copy_ignore(templates.argv[i], COPY_FTYPE_FILENAME);
 	}
 	return TEMPLATE_ERROR_NONE;
 }
 
-struct templates_type_info {
+static const struct templates_type_info {
 	const char 			*keyword;
 	const uint32_t			max_params;
 	enum templates_error_codes (* const func)(struct templates);
-};
-
-static const struct templates_type_info templates_table[TEMPLATE_TOTAL] = {
-	// enum templates_type	const char *	int32_t	function
-	// 			keyword		max_p.
+} templates_table[TEMPLATE_TOTAL] = {
+	// enum templates_type	keyword		max_params	func
 	[TEMPLATE_NOT_FOUND] 	= { NULL,	0,	NULL },
 	[TEMPLATE_ROOT] 	= { NULL,	0,	NULL },
 	[TEMPLATE_VARIABLE] 	= { "var",	1,	templates_variable },

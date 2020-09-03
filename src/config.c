@@ -201,3 +201,30 @@ config_print(struct config *config)
 	}
 }
 
+void
+config_template(struct config *config,
+		const char *base_dir,
+		const char *src_dir)
+{
+	for (uint32_t i = 0; i < config->list.length; ++i)
+	{
+		const struct config_line *line = config->list.list[i];
+		templates((struct templates) {
+				.stream = NULL,
+				.type = line->type,
+				.argc = line->argc,
+				.argv = line->argv,
+				.generate_outside = false,
+				.indirect_stream = NULL,
+				.parent_type = TEMPLATE_NOT_FOUND,
+				.parent_argc = 0,
+				.parent_argv = NULL,
+				.base_dir = base_dir,
+				.cur_file = NULL,
+				.main_file = NULL,
+				.dest_dir = src_dir,
+				.tscondgen = NULL
+				});
+	}
+}
+
