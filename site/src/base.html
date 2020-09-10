@@ -7,14 +7,16 @@
     <link rel="stylesheet" href="{% link "/style.css" %}">
   </head>
   <body>
-    <h1>{{ title }}</h1>
     <nav>
+      <h1>{{ title }}</h1>
       <ul>
         <li>{% link "/" Home %}</li>
         <li>{% link "/about/" About %}</li>
       </ul>
     </nav>
-    {% putblock content %}
+    <div class="content">
+      {% putblock content %}
+    </div>
   </body>
 </html>
 

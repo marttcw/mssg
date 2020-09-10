@@ -2,6 +2,7 @@
 {% base "/base.html" %}
 {% set start 25 %}
 {% set end 15 %}
+{% set nlist 3 5 7 11 %}
 {% setblock content %}
   <p>
     Blah blah blah blah blah
@@ -19,5 +20,11 @@ main(int argc, char **argv)
       {{ i }} - Testing 123 456
     </p>
   {% end %}
+
+  <ul>
+  {% loop i 0 3 %}
+    <li>{{ nlist i }}</li>
+  {% end %}
+  </ul>
 {% end %}
 

@@ -9,6 +9,7 @@
 struct hashmap_item {
 	char	*key;
 	void 	*value;
+	bool	active;
 };
 
 struct hashmap_row {
@@ -23,16 +24,20 @@ struct hashmap {
 	uint32_t		horz_alloc_chunk;
 	size_t			type_size;
 	void			(* cleanup)(void *);
+	void			(* alloc)(void *);
 };
 
 extern void hashmap_create(struct hashmap *hashmap,
 		const uint32_t vert_length,
 		const uint32_t horz_alloc_chunk,
 		const size_t type_size,
-		void (* cleanup)(void *));
+		void (* const cleanup)(void *),
+		void (* const alloc)(void *));
 extern void *hashmap_get(struct hashmap *hashmap,
 		const char *key);
 extern void *hashmap_add(struct hashmap *hashmap,
+		const char *key);
+extern void hashmap_remove(struct hashmap *hashmap,
 		const char *key);
 extern void hashmap_destroy(struct hashmap *hashmap);
 
@@ -91,13 +96,15 @@ hashmap_create(struct hashmap *hashmap,
 		const uint32_t vert_length,
 		const uint32_t horz_alloc_chunk,
 		const size_t type_size,
-		void (* const cleanup)(void *))
+		void (* const cleanup)(void *),
+		void (* const alloc)(void *))
 {
 	hashmap->map = NULL;
 	hashmap->vert_length = vert_length;
 	hashmap->horz_alloc_chunk = horz_alloc_chunk;
 	hashmap->type_size = type_size;
 	hashmap->cleanup = cleanup;
+	hashmap->alloc = alloc;
 }
 
 void *
@@ -114,7 +121,7 @@ hashmap_get(struct hashmap *hashmap,
 	struct hashmap_row *row = &hashmap->map[hash];
 	for (uint32_t i = 0; i < row->length; ++i)
 	{
-		if (!strcmp(row->items[i].key, key))
+		if (!strcmp(row->items[i].key, key) && row->items[i].active)
 		{
 			return row->items[i].value;
 		}
@@ -134,9 +141,30 @@ hashmap_add(struct hashmap *hashmap,
 
 	row->items[index].key = calloc(sizeof(char), key_length + 1);
 	row->items[index].value = calloc(hashmap->type_size, 1);
+	if (hashmap->alloc != NULL)
+	{
+		hashmap->alloc(row->items[index].value);
+	}
+	row->items[index].active = true;
 
 	strcpy(row->items[index].key, key);
 	return row->items[index].value;
+}
+
+void
+hashmap_remove(struct hashmap *hashmap,
+		const char *key)
+{
+	const uint32_t hash = hashmap_hash(hashmap->vert_length, key);
+	struct hashmap_row *row = &hashmap->map[hash];
+	for (uint32_t i = 0; i < row->length; ++i)
+	{
+		if (!strcmp(row->items[i].key, key) && row->items[i].active)
+		{
+			hashmap->cleanup(row->items[i].value);
+			row->items[i].active = false;
+		}
+	}
 }
 
 void
@@ -155,7 +183,7 @@ hashmap_destroy(struct hashmap *hashmap)
 			struct hashmap_item item = row.items[j];
 			if (item.value != NULL)
 			{
-				if (hashmap->cleanup != NULL)
+				if (hashmap->cleanup != NULL && item.active)
 				{
 					hashmap->cleanup(item.value);
 				}

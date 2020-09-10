@@ -66,6 +66,7 @@ enum parser_error parser_create(struct parser *parser,
 		const char *root_filepath,
 		struct files *files,
 		const bool dyn_alloc);
+void parser_destroy_nofree(struct parser *parser);
 void parser_destroy(struct parser *parser);
 char *parser_error_message(const struct parser *parser);
 void parser_print(const struct parser *parser);

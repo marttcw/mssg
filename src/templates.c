@@ -13,14 +13,17 @@ enum vartype {
 	TEMPLATE_VARTYPE_ERROR
 };
 
+union variable_data {
+	int32_t	num_int;
+	double	num_double;
+	char	string[256];
+};
+
 struct variable {
-	enum vartype	type;
-	bool		settable;
-	union {
-		int32_t	num_int;
-		double	num_double;
-		char	string[256];
-	} var;
+	enum vartype		type;
+	bool			settable;
+	union variable_data	*var;
+	uint32_t		length;
 };
 
 struct block {
@@ -35,6 +38,21 @@ templates__blocks_cleanup(void *data)
 	{
 		fclose(block->stream);
 	}
+}
+
+static void
+templates__variables_cleanup(void *data)
+{
+	struct variable *variable = data;
+	free(variable->var);
+}
+
+static void
+templates__variables_alloc(void *data)
+{
+	struct variable *variable = data;
+	variable->var = calloc(sizeof(union variable_data), 1);
+	variable->length = 1;
 }
 
 // In-file variables
@@ -133,9 +151,12 @@ templates__add_block(const char *name)
 void
 templates_init(void)
 {
-	hashmap_create(&variables, 16, 8, sizeof(struct variable), NULL);
+	hashmap_create(&variables, 16, 8, sizeof(struct variable),
+			templates__variables_cleanup,
+			templates__variables_alloc);
 	hashmap_create(&blocks, 16, 8, sizeof(struct block),
-			templates__blocks_cleanup);
+			templates__blocks_cleanup,
+			NULL);
 }
 
 void
@@ -146,37 +167,7 @@ templates_deinit(void)
 }
 
 static enum templates_error_codes
-templates_variable(struct templates templates)
-{
-	FILE *out_stream = (*templates.generate_outside) ?
-		templates.stream : *templates.indirect_stream;
-
-	const struct variable *var = templates_varlist_get(templates.argv[0]);
-	if (var == NULL)
-	{
-		return TEMPLATE_ERROR_GETVAR_NOT_FOUND;
-	}
-
-	switch (var->type)
-	{
-	case TEMPLATE_VARTYPE_STRING:
-		fprintf(out_stream, "%s", var->var.string);
-		break;
-	case TEMPLATE_VARTYPE_INT:
-		fprintf(out_stream, "%d", var->var.num_int);
-		break;
-	case TEMPLATE_VARTYPE_DOUBLE:
-		fprintf(out_stream, "%f", var->var.num_double);
-		break;
-	default:
-		break;
-	}
-
-	return TEMPLATE_ERROR_NONE;
-}
-
-static enum templates_error_codes
-templates_loop__get_int(const char *data,
+templates__get_int(const char *data,
 		int32_t *number)
 {
 	const enum vartype type = templates_dettype(data);
@@ -190,12 +181,65 @@ templates_loop__get_int(const char *data,
 		struct variable *var = templates_varlist_get(data);
 		if (var == NULL)
 		{
+			fprintf(stderr, "(tempgetvar) Not found: %s\n", data);
 			return TEMPLATE_ERROR_GETVAR_NOT_FOUND;
 		}
-		*number = var->var.num_int;
+		*number = var->var[0].num_int;
 	}	break;
 	default:
 		return TEMPLATE_ERROR_SETVAR_UNUSED_TYPE;
+	}
+
+	return TEMPLATE_ERROR_NONE;
+}
+
+static enum templates_error_codes
+templates_variable(struct templates templates)
+{
+	FILE *out_stream = (*templates.generate_outside) ?
+		templates.stream : *templates.indirect_stream;
+
+	const struct variable *var = templates_varlist_get(templates.argv[0]);
+	if (var == NULL)
+	{
+		fprintf(stderr, "(getvar) Not found: %s\n", templates.argv[0]);
+		return TEMPLATE_ERROR_GETVAR_NOT_FOUND;
+	}
+
+	int32_t index = 0;
+	// TODO: TEMP
+#if 0
+	printf("templates.argc: %d | var: %s | length: %d\n",
+			templates.argc, templates.argv[0], var->length);
+#endif
+	if ((templates.argc > 1) && (var->length > 1))
+	{	// List index
+		enum templates_error_codes error = TEMPLATE_ERROR_NONE;
+		if ((error = templates__get_int(templates.argv[1], &index))
+				!= TEMPLATE_ERROR_NONE)
+		{
+			return error;
+		}
+		
+		if (index >= (int32_t) var->length)
+		{
+			return TEMPLATE_ERROR_GETVAR_INDEX_OUT_OF_RANGE;
+		}
+	}
+
+	switch (var->type)
+	{
+	case TEMPLATE_VARTYPE_STRING:
+		fprintf(out_stream, "%s", var->var[index].string);
+		break;
+	case TEMPLATE_VARTYPE_INT:
+		fprintf(out_stream, "%d", var->var[index].num_int);
+		break;
+	case TEMPLATE_VARTYPE_DOUBLE:
+		fprintf(out_stream, "%f", var->var[index].num_double);
+		break;
+	default:
+		break;
 	}
 
 	return TEMPLATE_ERROR_NONE;
@@ -213,12 +257,12 @@ templates_loop(struct templates templates)
 	const char *end_data = templates.argv[2];
 
 	enum templates_error_codes error = TEMPLATE_ERROR_NONE;
-	if ((error = templates_loop__get_int(start_data, &start))
+	if ((error = templates__get_int(start_data, &start))
 			!= TEMPLATE_ERROR_NONE)
 	{
 		return error;
 	}
-	if ((error = templates_loop__get_int(end_data, &end))
+	if ((error = templates__get_int(end_data, &end))
 			!= TEMPLATE_ERROR_NONE)
 	{
 		return error;
@@ -232,20 +276,19 @@ templates_loop(struct templates templates)
 	{	// First execution of loop
 		var = hashmap_add(&variables, name);
 		var->type = TEMPLATE_VARTYPE_INT;
-		var->var.num_int = start;
+		var->var[0].num_int = start;
 		var->settable = false;
 
 		// Add into start/end pool
 	}
 	else
 	{
-		var->var.num_int += diff;
+		var->var[0].num_int += diff;
 	}
 
 	*templates.tscondgen = 1;
-	if (var->var.num_int == end)
+	if (var->var[0].num_int == end)
 	{
-		// TODO: Remove variable
 		*templates.tscondgen = 0;
 	}
 
@@ -256,10 +299,12 @@ static enum templates_error_codes
 templates_set_var(struct templates templates)
 {
 	const char *name = templates.argv[0];
-	const char *data = templates.argv[1];
-	const enum vartype type = templates_dettype(data);
+	const char *first_data = templates.argv[1];
+	const enum vartype first_type = templates_dettype(first_data);
+	const uint32_t length = templates.argc - 1;
+	char **datas = templates.argv + 1;
 
-	if (type == TEMPLATE_VARTYPE_ERROR)
+	if (first_type == TEMPLATE_VARTYPE_ERROR)
 	{
 		return TEMPLATE_ERROR_SETVAR_NO_TYPE;
 	}
@@ -272,25 +317,38 @@ templates_set_var(struct templates templates)
 		var->settable = true;
 	}
 
+	if (length > 1)
+	{	// If list
+		var->var = realloc(var->var,
+				sizeof(union variable_data) * length);
+	}
+	var->length = length;
+
 	if (!var->settable)
 	{
 		return TEMPLATE_ERROR_SETVAR_DISALLOWED;
 	}
 
-	var->type = type;
-	switch (var->type)
+	var->type = first_type;
+
+	for (uint32_t i = 0; i < length; ++i)
 	{
-	case TEMPLATE_VARTYPE_INT:
-		var->var.num_int = atoi(data);
-		break;
-	case TEMPLATE_VARTYPE_DOUBLE:
-		var->var.num_double = atof(data);
-		break;
-	case TEMPLATE_VARTYPE_STRING:
-		strcpy(var->var.string, data);
-		break;
-	default:
-		return TEMPLATE_ERROR_SETVAR_UNUSED_TYPE;
+		const enum vartype dtype = templates_dettype(datas[i]);
+
+		switch (dtype)
+		{
+		case TEMPLATE_VARTYPE_INT:
+			var->var[i].num_int = atoi(datas[i]);
+			break;
+		case TEMPLATE_VARTYPE_DOUBLE:
+			var->var[i].num_double = atof(datas[i]);
+			break;
+		case TEMPLATE_VARTYPE_STRING:
+			strcpy(var->var[i].string, datas[i]);
+			break;
+		default:
+			return TEMPLATE_ERROR_SETVAR_UNUSED_TYPE;
+		}
 	}
 
 	return TEMPLATE_ERROR_NONE;
@@ -302,6 +360,14 @@ templates_set_block(struct templates templates)
 	*templates.generate_outside = false;
 	*templates.indirect_stream = templates__add_block(templates.argv[0]);
 
+	return TEMPLATE_ERROR_NONE;
+}
+
+// TODO
+static enum templates_error_codes
+templates_set_dir(struct templates templates)
+{
+	(void) templates;
 	return TEMPLATE_ERROR_NONE;
 }
 
@@ -446,13 +512,17 @@ templates_end(struct templates templates)
 {
 	*templates.generate_outside = true;
 
-#if 0
 	switch (templates.parent_type)
 	{
+	case TEMPLATE_LOOP:
+		if (*templates.tscondgen == 0)
+		{
+			hashmap_remove(&variables, templates.parent_argv[0]);
+		}
+		break;
 	default:
 		break;
 	}
-#endif
 
 	*templates.indirect_stream = NULL;
 
@@ -478,16 +548,17 @@ templates_copy_ignore(struct templates templates)
 
 static const struct templates_type_info {
 	const char 			*keyword;
-	const uint32_t			max_params;
+	const uint32_t			min_params;
 	enum templates_error_codes (* const func)(struct templates);
 } templates_table[TEMPLATE_TOTAL] = {
-	// enum templates_type	keyword		max_params	func
+	// enum templates_type	keyword		min_params	func
 	[TEMPLATE_NOT_FOUND] 	= { NULL,	0,	NULL },
 	[TEMPLATE_ROOT] 	= { NULL,	0,	NULL },
 	[TEMPLATE_VARIABLE] 	= { "var",	1,	templates_variable },
 	[TEMPLATE_LOOP] 	= { "loop",	3,	templates_loop },
 	[TEMPLATE_SET_VAR] 	= { "set", 	2,	templates_set_var },
 	[TEMPLATE_SET_BLOCK]	= { "setblock",	1,	templates_set_block },
+	[TEMPLATE_SET_DIR]	= { "setdir",	2,	templates_set_dir },
 	[TEMPLATE_PUT_BLOCK]	= { "putblock",	1,	templates_put_block },
 	[TEMPLATE_BASE]		= { "base",	1,	NULL },
 	[TEMPLATE_LINK]		= { "link",	1,	templates_link },
@@ -525,7 +596,7 @@ templates(struct templates templates)
 	if (row.func != NULL)
 	{
 
-		if (templates.argc < row.max_params)
+		if (templates.argc < row.min_params)
 		{
 			return TEMPLATE_ERROR_ARGCMIN_NSAT;
 		}
@@ -550,6 +621,7 @@ templates_error(const enum templates_error_codes code)
 		[TEMPLATE_ERROR_SETVAR_NO_TYPE] = "set var no type",
 		[TEMPLATE_ERROR_SETVAR_UNUSED_TYPE] = "set var unused type",
 		[TEMPLATE_ERROR_GETVAR_NOT_FOUND] = "get var not found",
+		[TEMPLATE_ERROR_GETVAR_INDEX_OUT_OF_RANGE] = "get var out of range",
 		[TEMPLATE_ERROR_NO_FUNC] = "no function",
 		[TEMPLATE_ERROR_SETVAR_DISALLOWED] = "not settable",
 	};

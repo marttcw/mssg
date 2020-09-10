@@ -12,6 +12,7 @@ enum templates_type {
 	TEMPLATE_LOOP,		// TODO
 	TEMPLATE_SET_VAR,
 	TEMPLATE_SET_BLOCK,
+	TEMPLATE_SET_DIR,
 	TEMPLATE_PUT_BLOCK,
 	TEMPLATE_BASE,
 	TEMPLATE_LINK,
@@ -31,6 +32,7 @@ enum templates_error_codes {
 	TEMPLATE_ERROR_SETVAR_NO_TYPE,	// Var setter got no type out
 	TEMPLATE_ERROR_SETVAR_UNUSED_TYPE,	// Var setter not using the type
 	TEMPLATE_ERROR_GETVAR_NOT_FOUND,	// Var not found
+	TEMPLATE_ERROR_GETVAR_INDEX_OUT_OF_RANGE,	// Var out of range
 	TEMPLATE_ERROR_NO_FUNC,		// No function
 	TEMPLATE_ERROR_SETVAR_DISALLOWED,	// Var setter not allowed
 

@@ -129,8 +129,10 @@ parser__read_char_from_copy(struct parser *parser,
 		break;
 	case '{':
 		parser->current->type = TEMPLATE_VARIABLE;
+#if 0
 		parser->current->argc = 0;
 		parser->current->argl[0] = 0;
+#endif
 		parser->current->finding_type = false;
 
 		parser->state = PARSER_STATE_VAR;
@@ -138,6 +140,65 @@ parser__read_char_from_copy(struct parser *parser,
 	default:
 		break;
 	}
+}
+
+static void
+parser__add_arg(struct parser *parser)
+{
+	if (parameter_length == 0)
+	{
+		return;
+	}
+
+	parameter[parameter_length] = '\0';
+
+	if (parser->current->finding_type)
+	{
+		// Match with the type
+		parser->current->type = templates_str_to_type(parameter);
+
+		if (parser->current->type == TEMPLATE_NOT_FOUND)
+		{
+			fprintf(stderr, "ERROR: '%s': %d: '%s' not a"
+					" recognised command!\n",
+					parser->filepath,
+					parser->line, parameter);
+		}
+
+		parser->current->finding_type = false;
+	}
+	else
+	{
+		const uint32_t index = parser->current->argc++;
+
+		if (index == (parser->current->arga - 1))
+		{
+			parser->current->arga += ALLOC_STEP;
+			parser->current->argv = realloc(
+					parser->current->argv,
+					sizeof(char *) *
+					parser->current->arga);
+			for (uint32_t i = (index+1);
+					i < parser->current->arga;
+					++i)
+			{
+				parser->current->argv[i] = calloc(
+						sizeof(char),
+						ALLOC_STR);
+			}
+
+			parser->current->argl = realloc(
+					parser->current->argl,
+					sizeof(uint32_t) *
+					parser->current->arga);
+		}
+		strcpy(parser->current->argv[index], parameter);
+		parser->current->argl[index] = parameter_length;
+	}
+
+	// Reset
+	parameter[0] = '\0';
+	parameter_length = 0;
 }
 
 static void
@@ -151,60 +212,7 @@ parser__read_char_cond(struct parser *parser,
 		parser->state = PARSER_STATE_FROM_COND;
 		break;
 	case ' ':
-		if (parameter_length == 0)
-		{
-			break;
-		}
-
-		parameter[parameter_length] = '\0';
-
-		if (parser->current->finding_type)
-		{
-			// Match with the type
-			parser->current->type = templates_str_to_type(parameter);
-
-			if (parser->current->type == TEMPLATE_NOT_FOUND)
-			{
-				fprintf(stderr, "ERROR: '%s': %d: '%s' not a"
-						" recognised command!\n",
-						parser->filepath,
-						parser->line, parameter);
-			}
-
-			parser->current->finding_type = false;
-		}
-		else
-		{
-			const uint32_t index = parser->current->argc++;
-
-			if (index == (parser->current->arga - 1))
-			{
-				parser->current->arga += ALLOC_STEP;
-				parser->current->argv = realloc(
-						parser->current->argv,
-						sizeof(char *) *
-						parser->current->arga);
-				for (uint32_t i = (index+1);
-						i < parser->current->arga;
-						++i)
-				{
-					parser->current->argv[i] = calloc(
-							sizeof(char),
-							ALLOC_STR);
-				}
-
-				parser->current->argl = realloc(
-						parser->current->argl,
-						sizeof(uint32_t) *
-						parser->current->arga);
-			}
-			strcpy(parser->current->argv[index], parameter);
-			parser->current->argl[index] = parameter_length;
-		}
-
-		// Reset
-		parameter[0] = '\0';
-		parameter_length = 0;
+		parser__add_arg(parser);
 		break;
 	case '"':
 		parser->state = PARSER_STATE_COND_QUOTE;
@@ -291,12 +299,15 @@ parser__read_char_var(struct parser *parser,
 		parser->state = PARSER_STATE_FROM_VAR;
 		break;
 	case ' ':
+		parser__add_arg(parser);
 		break;
 	default:
-	{
-		const uint32_t index = parser->current->argl[0]++;
-		parser->current->argv[0][index] = character;
-	}	break;
+		if (parameter == NULL)
+		{
+			parameter = malloc(sizeof(char) * PARAM_CHUNK);
+		}
+
+		parameter[parameter_length++] = character;
 	}
 }
 
@@ -308,11 +319,7 @@ parser__read_char_from_var(struct parser *parser,
 	{
 	case '}':
 	{
-		const uint32_t index = parser->current->argl[0];
-		parser->current->argv[0][index] = '\0';
-		parser->current->argc = 1;
 		parser->current->char_end = parser->current_file_position;
-
 		parser->current = parser->current->parent;
 		parser->state = PARSER_STATE_COPY;
 	}	break;
@@ -473,6 +480,18 @@ parser__destroy_node(struct parser_node *node)
 		node->nodes = NULL;
 		node->alloc_length = 0;
 		node->length = 0;
+	}
+}
+
+void
+parser_destroy_nofree(struct parser *parser)
+{
+	parser__destroy_node(&parser->node);
+
+	if (parser->fp != NULL)
+	{
+		fclose(parser->fp);
+		parser->fp = NULL;
 	}
 }
 

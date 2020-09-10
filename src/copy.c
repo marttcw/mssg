@@ -22,7 +22,8 @@ copy_init(void)
 	for (uint32_t i = 0; i < COPY_FTYPE_MAX; ++i)
 	{
 		hashmap_create(&copy_table[i].hmap,
-				16, 8, sizeof(struct copy_table_item), NULL);
+				16, 8, sizeof(struct copy_table_item),
+				NULL, NULL);
 	}
 }
 

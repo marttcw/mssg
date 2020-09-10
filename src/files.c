@@ -32,7 +32,7 @@ files_create(const char *start_dir,
 	generic_list_create(&files.list, 16,
 			sizeof(struct file), NULL);
 	hashmap_create(&files.allowed, 10, 8,
-			sizeof(struct file_allowed), NULL);
+			sizeof(struct file_allowed), NULL, NULL);
 
 	strcpy(files.start_dir, start_dir);
 	sprintf(files.base_src_dir, "%s/%s", start_dir,
@@ -54,7 +54,9 @@ files_destroy(struct files *files)
 	for (uint32_t i = 0; i < length; ++i)
 	{
 		struct file *file = generic_list_get(&files->list, i);
-		if (file != NULL && file->parser != NULL)
+		if (file != NULL &&
+				!file->ignore_in_destroy &&
+				file->parser != NULL)
 		{
 			parser_destroy(file->parser);
 		}
@@ -165,6 +167,7 @@ files__add_file(struct files *files,
 	}
 	file->parsed = false;
 	strcpy(file->ext, files__get_file_ext(filename));
+	file->ignore_in_destroy = false;
 }
 
 bool

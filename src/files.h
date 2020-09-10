@@ -23,6 +23,7 @@ struct file {
 	bool		parsed;
 	void		*parser;
 	char		ext[64];
+	bool		ignore_in_destroy;
 };
 
 struct file_allowed {

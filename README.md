@@ -51,6 +51,7 @@ set: Set a variable
 {% set foo bar %} - String
 {% set foo 1 %} - Integer
 {% set foo 1.1 %} - Float
+{% set foo aaa bbb ccc %} - List of strings
 {% set foo .num 15 .stuff 20 %} - Dictionary (TODO)
 
 Get variable
@@ -84,6 +85,12 @@ blog editor vim
 ```
 
 ## TODO
+* Static blog
+* config
+  * `set list one two 3 four five` (list)
+  * `setdir dirlist /blog/` (root of source directory)
+
+## TODO (Old)
 * Rework
 * Templating - Doing
   * for loop - Done

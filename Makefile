@@ -27,7 +27,7 @@ LINKS =
 INCLUDES = -Isrc
 PKG = 
 PKG_CFG =
-CFLAGS = -std=c99 -pedantic-errors -pedantic -Wall -Wextra -msse2 -msse4.2 -Wpointer-arith -Wstrict-prototypes -fomit-frame-pointer -ffast-math
+CFLAGS = -std=c99 -pedantic-errors -pedantic -Wall -Wextra -Wpointer-arith -Wstrict-prototypes -fomit-frame-pointer -ffast-math
 CFLAGS_RELEASE = -flto -O3
 CFLAGS_DEBUG = -g
 OTHER_FILES = LICENSE Makefile README.md

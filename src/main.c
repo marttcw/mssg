@@ -81,7 +81,7 @@ main(int argc, char **argv)
 			fprintf(stderr, "Error code: %d | Message: %s\n",
 					parser.error, parser_error_message(&parser));
 			retval = 1;
-			parser_destroy(&parser);
+			parser_destroy_nofree(&parser);
 			goto cleanup;
 		}
 #if 0
@@ -104,7 +104,8 @@ main(int argc, char **argv)
 					" for writing!\n");
 		}
 		fclose(tmp_file);
-		parser_destroy(&parser);
+		parser_destroy_nofree(&parser);
+		file->ignore_in_destroy = true;
 	}
 
 cleanup:
