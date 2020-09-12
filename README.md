@@ -56,6 +56,7 @@ set: Set a variable
 
 Get variable
 {{ foo }}
+{{ foo 0 }}
 
 link: Set a link string derived from the source+destination root path
 {% link /foo.html %} - Produce just the link
@@ -81,7 +82,8 @@ Blog for loop:
 ### Configuration file only
 Set your text editor for editing blog files
 ```
-blog editor vim
+copy_ignore base.html
+setdir /blog -all
 ```
 
 ## TODO

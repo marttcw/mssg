@@ -289,3 +289,31 @@ files_print(struct files *files)
 	}
 }
 
+char **
+files_get_under_dirs(struct files *files,
+		const char *startfix,
+		uint32_t *total)
+{
+	char dststartfix[256] = { 0 };
+	sprintf(dststartfix, "%s%s", files->base_dst_dir, startfix);
+	const uint32_t dststartfix_len = strlen(dststartfix);
+	//printf("dststartfix: %s\n", dststartfix);
+
+	static char *paths[256] = { NULL };
+	uint32_t ip = 0;
+	*total = 0;
+
+	for (struct file *file = NULL;
+			(file = files_next(files)) != NULL;
+	    )
+	{
+		if (!strncmp(file->path_gen, dststartfix, dststartfix_len))
+		{
+			paths[ip++] = file->path_gen;
+		}
+	}
+
+	*total = ip;
+	return paths;
+}
+

@@ -59,6 +59,9 @@ bool files_allowed(struct files *files,
 void files_allowed_add(struct files *files,
 		const char *filename);
 void files_print(struct files *files);
+char **files_get_under_dirs(struct files *files,
+		const char *startfix,
+		uint32_t *total);
 
 #endif // FILES_H
 

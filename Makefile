@@ -12,6 +12,7 @@ src/minify.c
 src/files.c
 src/config.c
 src/copy.c
+src/vars.c
 endef
 
 SRC := $(strip ${SRC})

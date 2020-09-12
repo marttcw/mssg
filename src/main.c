@@ -45,6 +45,14 @@ main(int argc, char **argv)
 		config_parser(&config, config_file->path_ful);
 		//config_print(&config);
 		config_template(&config, files.start_dir, files.base_src_dir);
+
+		// TODO
+		uint32_t total = 0;
+		char **paths = files_get_under_dirs(&files, "/blog/", &total);
+		for (uint32_t i = 0; i < total; ++i)
+		{
+			printf("path: %s\n", paths[i]);
+		}
 	}
 	else
 	{
