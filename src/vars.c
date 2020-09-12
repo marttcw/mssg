@@ -106,6 +106,27 @@ vars__get_int(const char *data,
 	return VARS_ERROR_NONE;
 }
 
+static void
+vars__set(union var_data *dst,
+		const enum var_type type,
+		const union var_data src)
+{
+	switch (type)
+	{
+	case VAR_TYPE_INT:
+		dst->num_int = src.num_int;
+		break;
+	case VAR_TYPE_DOUBLE:
+		dst->num_double = src.num_double;
+		break;
+	case VAR_TYPE_STRING:
+		strcpy(dst->string, src.string);
+		break;
+	default:
+		break;
+	}
+}
+
 void
 vars_init(void)
 {
@@ -230,7 +251,7 @@ vars_get(const char *name,
 }
 
 enum vars_error
-vars_loop(const char *name,
+vars_loop_range(const char *name,
 		const char *start_str,
 		const char *end_str,
 		bool *ended)
@@ -266,13 +287,72 @@ vars_loop(const char *name,
 	return VARS_ERROR_NONE;
 }
 
+enum vars_error
+vars_loop_in(const char *name,
+		const char *list,
+		bool *ended)
+{
+	struct var *list_var = hashmap_get(&variables, list);
+	if (list_var == NULL)
+	{	// list not found
+		*ended = true;
+		return VARS_ERROR_NOT_FOUND;
+	}
+
+	char name_iter[256] = { 0 };
+	sprintf(name_iter, "%s_iter", name);
+	struct var *var = hashmap_get(&variables, name);
+	struct var *var_iter = hashmap_get(&variables, name_iter);
+	if (var == NULL && var_iter == NULL)
+	{	// First execution of loop
+		var = hashmap_add(&variables, name);
+		var->type = list_var->type;
+		var->settable = false;
+
+		var_iter = hashmap_add(&variables, name_iter);
+		var_iter->type = VAR_TYPE_INT;
+		var_iter->settable = false;
+		var_iter->var[0].num_int = 0;
+	}
+
+	const uint32_t index = var_iter->var[0].num_int++;
+
+	vars__set(&var->var[0], var->type, list_var->var[index]);
+	*ended = (index == (list_var->length - 1));
+
+	return VARS_ERROR_NONE;
+}
+
+enum vars_error
+vars_loop(const uint32_t argc,
+		const char **argv,
+		bool *ended)
+{
+	if (argc == 2)
+	{
+		return vars_loop_in(argv[0], argv[1], ended);
+	}
+	else
+	{
+		return vars_loop_range(argv[0], argv[1], argv[2], ended);
+	}
+}
+
 void
-vars_loop_end(const char *name,
+vars_loop_end(const uint32_t argc,
+		const char **argv,
 		const bool ended)
 {
 	if (ended)
 	{
-		hashmap_remove(&variables, name);
+		hashmap_remove(&variables, argv[0]);
+
+		if (argc == 2)
+		{
+			char name_iter[256] = { 0 };
+			sprintf(name_iter, "%s_iter", argv[0]);
+			hashmap_remove(&variables, name_iter);
+		}
 	}
 }
 

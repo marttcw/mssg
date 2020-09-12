@@ -118,6 +118,7 @@ config__parser_arg(struct config *config,
 		if (config->finding_type)
 		{
 			struct config_line *line = generic_list_add(&config->list);
+			config->param[config->param_length] = '\0';
 			line->type = templates_str_to_type(config->param);
 			line->argc = 0;
 			line->argl = NULL;
@@ -190,8 +191,9 @@ config_print(struct config *config)
 	for (uint32_t i = 0; i < config->list.length; ++i)
 	{
 		const struct config_line *line = config->list.list[i];
-		printf("\ttype: %s | argc: %d | ",
+		printf("\ttype: %s (%d) | argc: %d | ",
 				templates_type_to_str(line->type),
+				line->type,
 				line->argc);
 		for (uint32_t i = 0; i < line->argc; ++i)
 		{
@@ -199,6 +201,26 @@ config_print(struct config *config)
 		}
 		putchar('\n');
 	}
+}
+
+struct config_line *
+config_iter_type(struct config *config,
+		const enum templates_type type)
+{
+	static uint32_t index = 0;
+
+	for (; index < config->list.length; ++index)
+	{
+		struct config_line *line = config->list.list[index];
+		if (line->type == type)
+		{
+			++index;
+			return line;
+		}
+	}
+
+	index = 0;
+	return NULL;
 }
 
 void

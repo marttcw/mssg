@@ -26,5 +26,15 @@ main(int argc, char **argv)
     <li>{{ nlist i }}</li>
   {% end %}
   </ul>
+  <ul>
+  {% loop nl nlist %}
+    <li>{{ nl }}</li>
+  {% end %}
+  </ul>
+  <ul>
+  {% loop bl blog %}
+    <li>{{ bl }}</li>
+  {% end %}
+  </ul>
 {% end %}
 

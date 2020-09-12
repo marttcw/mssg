@@ -289,6 +289,12 @@ files_print(struct files *files)
 	}
 }
 
+static int
+files__sort_func(const void *a, const void *b)
+{
+	return strcmp(*(const char **) a, *(const char **) b);
+}
+
 char **
 files_get_under_dirs(struct files *files,
 		const char *startfix,
@@ -297,9 +303,10 @@ files_get_under_dirs(struct files *files,
 	char dststartfix[256] = { 0 };
 	sprintf(dststartfix, "%s%s", files->base_dst_dir, startfix);
 	const uint32_t dststartfix_len = strlen(dststartfix);
-	//printf("dststartfix: %s\n", dststartfix);
+	const uint32_t dst_len = strlen(files->base_dst_dir);
 
-	static char *paths[256] = { NULL };
+	static char *paths_st[256] = { NULL };
+	char **paths = paths_st;
 	uint32_t ip = 0;
 	*total = 0;
 
@@ -309,11 +316,14 @@ files_get_under_dirs(struct files *files,
 	{
 		if (!strncmp(file->path_gen, dststartfix, dststartfix_len))
 		{
-			paths[ip++] = file->path_gen;
+			paths[ip++] = file->path_gen + dst_len;
 		}
 	}
 
 	*total = ip;
+
+	qsort(paths, ip, sizeof(char *), files__sort_func);
+
 	return paths;
 }
 

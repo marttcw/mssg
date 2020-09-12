@@ -62,8 +62,14 @@ link: Set a link string derived from the source+destination root path
 {% link /foo.html %} - Produce just the link
 {% link /foo.html Foo %} - Produce a href link tag
 
-loop: For loop: EX: i start on foo to 5
+loop: For range loop: EX: i start on foo to 5
 {% loop i foo 5 %}
+  {{ i }}
+  {{ list i }}
+{% end %}
+For in loop:
+{% loop item list %}
+  {{ item }}
 {% end %}
 ```
 
@@ -83,7 +89,7 @@ Blog for loop:
 Set your text editor for editing blog files
 ```
 copy_ignore base.html
-setdir /blog -all
+setdir blog /blog 
 ```
 
 ## TODO

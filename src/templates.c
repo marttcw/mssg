@@ -93,6 +93,7 @@ static enum templates_error_codes vars_temp_error_map[VARS_ERROR_TOTAL] = {
 	[VARS_ERROR_NOT_FOUND] = TEMPLATE_ERROR_GETVAR_NOT_FOUND,
 	[VARS_ERROR_UNSUPPORTED_TYPE] = TEMPLATE_ERROR_GETVAR_NOT_FOUND,
 	[VARS_ERROR_OUT_OF_RANGE] = TEMPLATE_ERROR_GETVAR_INDEX_OUT_OF_RANGE,
+	[VARS_ERROR_SET_NOT_ALLOWED] = TEMPLATE_ERROR_SETVAR_DISALLOWED,
 };
 
 static enum templates_error_codes
@@ -123,10 +124,10 @@ templates_loop(struct templates templates)
 {
 	bool ended = false;
 
-	enum vars_error error = vars_loop(templates.argv[0],
-			templates.argv[1],
-			templates.argv[2],
+	enum vars_error error = vars_loop(templates.argc,
+			(const char **) templates.argv,
 			&ended);
+
 	if (error != VARS_ERROR_NONE)
 	{
 		return vars_temp_error_map[error];
@@ -305,7 +306,8 @@ templates_end(struct templates templates)
 	switch (templates.parent_type)
 	{
 	case TEMPLATE_LOOP:
-		vars_loop_end(templates.parent_argv[0],
+		vars_loop_end(templates.parent_argc,
+				templates.parent_argv,
 				(*templates.tscondgen == 0));
 		break;
 	default:
@@ -343,16 +345,16 @@ static const struct templates_type_info {
 	[TEMPLATE_NOT_FOUND] 	= { NULL,	0,	NULL },
 	[TEMPLATE_ROOT] 	= { NULL,	0,	NULL },
 	[TEMPLATE_VARIABLE] 	= { "var",	1,	templates_variable },
-	[TEMPLATE_LOOP] 	= { "loop",	3,	templates_loop },
+	[TEMPLATE_LOOP] 	= { "loop",	2,	templates_loop },
 	[TEMPLATE_SET_VAR] 	= { "set", 	2,	templates_set_var },
 	[TEMPLATE_SET_BLOCK]	= { "setblock",	1,	templates_set_block },
-	[TEMPLATE_SET_DIR]	= { "setdir",	2,	templates_set_dir },
 	[TEMPLATE_PUT_BLOCK]	= { "putblock",	1,	templates_put_block },
 	[TEMPLATE_BASE]		= { "base",	1,	NULL },
 	[TEMPLATE_LINK]		= { "link",	1,	templates_link },
 	[TEMPLATE_END]		= { "end",	0,	templates_end },
 	[TEMPLATE_COPY]		= { "copy",	1,	templates_copy },
 	[TEMPLATE_COPY_IGNORE]	= { "copy_ignore", 1,	templates_copy_ignore },
+	[TEMPLATE_SET_DIR]	= { "setdir",	2,	templates_set_dir },
 };
 
 enum templates_type

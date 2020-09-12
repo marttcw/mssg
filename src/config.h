@@ -39,6 +39,9 @@ void config_print(struct config *config);
 void config_template(struct config *config,
 		const char *base_dir,
 		const char *src_dir);
+struct config_line *config_iter_type(struct config *config,
+		const enum templates_type type);
+
 
 #endif // CONFIG_H
 

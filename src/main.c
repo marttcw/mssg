@@ -13,6 +13,7 @@
 #include "files.h"
 #include "config.h"
 #include "copy.h"
+#include "vars.h"
 
 int
 main(int argc, char **argv)
@@ -46,12 +47,25 @@ main(int argc, char **argv)
 		//config_print(&config);
 		config_template(&config, files.start_dir, files.base_src_dir);
 
-		// TODO
-		uint32_t total = 0;
-		char **paths = files_get_under_dirs(&files, "/blog/", &total);
-		for (uint32_t i = 0; i < total; ++i)
+		for (struct config_line *line = NULL;
+				(line = config_iter_type(&config,
+						TEMPLATE_SET_DIR)) != NULL;
+		    )
 		{
-			printf("path: %s\n", paths[i]);
+			const char *name = line->argv[0];
+			const char *traverse = line->argv[1];
+
+			uint32_t total = 0;
+			char **paths = files_get_under_dirs(
+					&files, traverse, &total);
+			putchar('\n');
+			for (uint32_t i = 0; i < total; ++i)
+			{
+				printf("path: %s\n", paths[i]);
+			}
+			vars_set(name, (const char **) paths, total);
+			printf("set: '%s'\n", name);
+			putchar('\n');
 		}
 	}
 	else

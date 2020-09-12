@@ -22,11 +22,18 @@ enum vars_error vars_set(const char *name,
 char *vars_get(const char *name,
 		const char *offset,
 		enum vars_error *error);
-enum vars_error vars_loop(const char *name,
+enum vars_error vars_loop_range(const char *name,
 		const char *start_str,
 		const char *end_str,
 		bool *ended);
-void vars_loop_end(const char *name,
+enum vars_error vars_loop_in(const char *name,
+		const char *list,
+		bool *ended);
+enum vars_error vars_loop(const uint32_t argc,
+		const char **argv,
+		bool *ended);
+void vars_loop_end(const uint32_t argc,
+		const char **argv,
 		const bool ended);
 
 #endif // VARS_H
