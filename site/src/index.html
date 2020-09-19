@@ -28,6 +28,12 @@ main(int argc, char **argv)
     </p>
   {% end %}
 
+  <br>
+  {% loop y dict.stuff.yes %}
+  {{ y }}<br>
+  {% end %}
+  <br>
+
   <ul>
   {% loop i 0 3 %}
     <li>{{ nlist i }}</li>

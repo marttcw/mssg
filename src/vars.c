@@ -173,8 +173,6 @@ vars__varinp_alloc(void *ptr, void *arg)
 	struct var_inp *vinp = ptr;
 	uint32_t *name_size_ptr = arg;
 
-	printf("vinp->name size:\n");
-
 	vinp->name = calloc(sizeof(char),
 			(name_size_ptr == NULL) ? 256 : *name_size_ptr);
 
@@ -233,7 +231,6 @@ vars__sep_multi(const char *base_name,
 		{
 			struct var_inp *vinp = generic_list_get_last(vars);
 			uint32_t len = strlen(values[i]) + 1;
-			printf("len: %d\n", len);
 			struct vinp_val *value = generic_list_add_wargs(&vinp->values,
 					(void *) &len);
 			strcpy(value->value, values[i]);
@@ -251,17 +248,21 @@ vars_set(const char *name,
 	// TEST DICT
 	if (values[0][0] == '.')
 	{
+#if 0
 		for (uint32_t i = 0; i < length; ++i)
 		{
 			printf("\t%s\n", values[i]);
 		}
 		putchar('\n');
+#endif
 
 		struct generic_list *vars = vars__sep_multi(name, values, length);
 
 		for (uint32_t i = 0; i < vars->length; ++i)
 		{
 			struct var_inp *vinp = generic_list_get(vars, i);
+
+#if 0
 			printf("name: %s\n", vinp->name);
 
 			for (uint32_t j = 0; j < vinp->values.length; ++j)
@@ -273,11 +274,33 @@ vars_set(const char *name,
 							&vinp->values, j)
 						)->value);
 			}
+#endif
+
+			// TODO: vars_set
+			char **values = calloc(sizeof(char *),
+					vinp->values.length + 1);
+
+			for (uint32_t j = 0; j < vinp->values.length; ++j)
+			{
+				values[j] = ((struct vinp_val *)
+						generic_list_get(
+							&vinp->values, j)
+						)->value;
+				//printf("values[%d]: %s\n", j, values[j]);
+			}
+
+			if (vinp->values.length > 0)
+			{
+				vars_set(vinp->name, (const char **) values,
+						vinp->values.length);
+			}
+
+			free(values);
 		}
 
 		generic_list_destroy(vars);
 		free(vars);
-		return VARS_ERROR_UNSUPPORTED_TYPE;
+		return VARS_ERROR_NONE;
 	}
 
 	const enum var_type type = vars__dettype(values[0]);
