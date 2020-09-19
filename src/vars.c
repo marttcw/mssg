@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "hashmap.h"
+#include "generic_list.h"
 
 enum var_type {
 	VAR_TYPE_INT = 0,
@@ -141,11 +142,144 @@ vars_deinit(void)
 	hashmap_destroy(&variables);
 }
 
+struct var_inp {
+	char 			*name;
+	struct generic_list	values;
+};
+
+struct vinp_val {
+	char	*value;
+};
+
+void
+vars__varinpname_alloc(void *ptr, void *arg)
+{
+	struct vinp_val *value = ptr;
+	uint32_t *str_size_ptr = arg;
+	value->value = calloc(sizeof(char),
+			(str_size_ptr == NULL) ? 256 : *str_size_ptr);
+}
+
+static void
+vars__varinpname_cleanup(void *arg)
+{
+	struct vinp_val *value = arg;
+	free(value->value);
+}
+
+static void
+vars__varinp_alloc(void *ptr, void *arg)
+{
+	struct var_inp *vinp = ptr;
+	uint32_t *name_size_ptr = arg;
+
+	printf("vinp->name size:\n");
+
+	vinp->name = calloc(sizeof(char),
+			(name_size_ptr == NULL) ? 256 : *name_size_ptr);
+
+	generic_list_create(&vinp->values, 16, sizeof(struct vinp_val),
+			vars__varinpname_cleanup,
+			vars__varinpname_alloc);
+}
+
+static void
+vars__varinp_cleanup(void *arg)
+{
+	struct var_inp *vinp = arg;
+	free(vinp->name);
+	generic_list_destroy(&vinp->values);
+}
+
+static struct generic_list *
+vars__sep_multi(const char *base_name,
+		const char **values,
+		const uint32_t length)
+{
+	struct generic_list *vars = calloc(sizeof(struct generic_list), 16);
+	generic_list_create(vars, 16, sizeof(struct var_inp),
+			vars__varinp_cleanup,
+			vars__varinp_alloc);
+
+	int32_t cur_i = -1;
+	char *cur_base[16] = { NULL };
+	cur_base[0] = (char *) base_name;
+	uint32_t level = 1;
+	for (uint32_t i = 0; i < length; ++i)
+	{
+		switch (values[i][0])
+		{
+		case '.':
+		{
+			++cur_i;
+
+			struct var_inp *vinp = generic_list_add(vars);
+
+			cur_base[level] = (char *) values[i];
+			for (uint32_t j = 0; j <= level; ++j)
+			{
+				strcat(vinp->name, cur_base[j]);
+			}
+		}	break;
+		case '{':
+			++level;
+			cur_base[level] = (char *) values[i];
+			break;
+		case '}':
+			--level;
+			cur_base[level] = (char *) values[i];
+			break;
+		default:
+		{
+			struct var_inp *vinp = generic_list_get_last(vars);
+			uint32_t len = strlen(values[i]) + 1;
+			printf("len: %d\n", len);
+			struct vinp_val *value = generic_list_add_wargs(&vinp->values,
+					(void *) &len);
+			strcpy(value->value, values[i]);
+		}	break;
+		}
+	}
+	return vars;
+}
+
 enum vars_error
 vars_set(const char *name,
 		const char **values,
 		const uint32_t length)
 {
+	// TEST DICT
+	if (values[0][0] == '.')
+	{
+		for (uint32_t i = 0; i < length; ++i)
+		{
+			printf("\t%s\n", values[i]);
+		}
+		putchar('\n');
+
+		struct generic_list *vars = vars__sep_multi(name, values, length);
+
+		for (uint32_t i = 0; i < vars->length; ++i)
+		{
+			struct var_inp *vinp = generic_list_get(vars, i);
+			printf("name: %s\n", vinp->name);
+
+			for (uint32_t j = 0; j < vinp->values.length; ++j)
+			{
+				printf("value: %s\n",
+						(char *)
+						((struct vinp_val *)
+						generic_list_get(
+							&vinp->values, j)
+						)->value);
+			}
+		}
+
+		generic_list_destroy(vars);
+		free(vars);
+		return VARS_ERROR_UNSUPPORTED_TYPE;
+	}
+
 	const enum var_type type = vars__dettype(values[0]);
 	if (type == VAR_TYPE_ERROR)
 	{
@@ -158,14 +292,15 @@ vars_set(const char *name,
 	{	// Make a new variable
 		var = hashmap_add(&variables, name);
 		var->settable = true;
+		var->length = 1;
 	}
 
 	if (length > 1)
 	{
 		var->var = realloc(var->var,
 				sizeof(union var_data) * length);
+		var->length = length;
 	}
-	var->length = length;
 
 	if (!var->settable)
 	{

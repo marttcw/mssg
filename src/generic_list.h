@@ -12,26 +12,31 @@ struct generic_list {
 	uint32_t	ALLOC_CHUNK;
 	size_t		type_size;
 	void		(*cleanup)(void *);
+	void		(*alloc)(void *, void *);
 };
 
 extern void generic_list_create(struct generic_list *generic_list,
 		const uint32_t alloc_chunk,
 		const size_t type_size,
-		void (* const cleanup)(void *));
-extern void generic_list_expand(struct generic_list *generic_list);
+		void (* const cleanup)(void *),
+		void (* const alloc)(void *, void *));
 extern void *generic_list_get(struct generic_list *generic_list,
 		const uint32_t index);
 extern void *generic_list_get_last(struct generic_list *generic_list);
 extern void *generic_list_add(struct generic_list *generic_list);
+extern void *generic_list_add_wargs(struct generic_list *generic_list,
+		void *args);
 extern void generic_list_destroy(struct generic_list *generic_list);
 
 #ifdef GENERIC_LIST_IMPLEMENTATION_H
+static void generic_list_expand(struct generic_list *generic_list);
 
 void
 generic_list_create(struct generic_list *generic_list,
 		const uint32_t alloc_chunk,
 		const size_t type_size,
-		void (* const cleanup)(void *))
+		void (* const cleanup)(void *),
+		void (* const alloc)(void *, void *))
 {
 	generic_list->list = NULL;
 	generic_list->length = 0;
@@ -39,6 +44,7 @@ generic_list_create(struct generic_list *generic_list,
 	generic_list->ALLOC_CHUNK = alloc_chunk;
 	generic_list->type_size = type_size;
 	generic_list->cleanup = cleanup;
+	generic_list->alloc = alloc;
 }
 
 void
@@ -53,6 +59,7 @@ generic_list_expand(struct generic_list *generic_list)
 		{
 			generic_list->list[i] = calloc(
 					generic_list->type_size, 1);
+
 		}
 	}
 	else if (generic_list->length == (generic_list->allocated - 1))
@@ -95,6 +102,24 @@ void *
 generic_list_add(struct generic_list *generic_list)
 {
 	generic_list_expand(generic_list);
+	if (generic_list->alloc != NULL)
+	{
+		generic_list->alloc(generic_list->list[generic_list->length],
+				NULL);
+	}
+	return generic_list->list[generic_list->length++];
+}
+
+void *
+generic_list_add_wargs(struct generic_list *generic_list,
+		void *args)
+{
+	generic_list_expand(generic_list);
+	if (generic_list->alloc != NULL)
+	{
+		generic_list->alloc(generic_list->list[generic_list->length],
+				args);
+	}
 	return generic_list->list[generic_list->length++];
 }
 
@@ -103,7 +128,8 @@ generic_list_destroy(struct generic_list *generic_list)
 {
 	for (uint32_t i = 0; i < generic_list->allocated; ++i)
 	{
-		if (generic_list->cleanup != NULL)
+		if ((i < generic_list->length) &&
+				(generic_list->cleanup != NULL))
 		{
 			generic_list->cleanup(generic_list->list[i]);
 		}

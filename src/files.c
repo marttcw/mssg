@@ -30,7 +30,7 @@ files_create(const char *start_dir,
 	};
 
 	generic_list_create(&files.list, 16,
-			sizeof(struct file), NULL);
+			sizeof(struct file), NULL, NULL);
 	hashmap_create(&files.allowed, 10, 8,
 			sizeof(struct file_allowed), NULL, NULL);
 

@@ -171,14 +171,14 @@ parser__add_arg(struct parser *parser)
 	{
 		const uint32_t index = parser->current->argc++;
 
-		if (index == (parser->current->arga - 1))
+		if (parser->current->argc >= (parser->current->arga - 1))
 		{
 			parser->current->arga += ALLOC_STEP;
 			parser->current->argv = realloc(
 					parser->current->argv,
 					sizeof(char *) *
 					parser->current->arga);
-			for (uint32_t i = (index+1);
+			for (uint32_t i = (parser->current->argc+1);
 					i < parser->current->arga;
 					++i)
 			{
@@ -212,6 +212,7 @@ parser__read_char_cond(struct parser *parser,
 		parser->state = PARSER_STATE_FROM_COND;
 		break;
 	case ' ':
+	case '\n':
 		parser__add_arg(parser);
 		break;
 	case '"':

@@ -31,7 +31,7 @@ config_create(struct config *config)
 	config->param = calloc(sizeof(char), 512);
 	config->param_length = 0;
 	generic_list_create(&config->list, 16, sizeof(struct config_line),
-			config__line_cleanup);
+			config__line_cleanup, NULL);
 }
 
 void
