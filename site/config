@@ -1,3 +1,0 @@
-copy_ignore base.html
-setdir blog /blog
-
