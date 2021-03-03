@@ -1,123 +1,29 @@
 # mssg
-Mart's Static Site Generator written in C (C99)
+Simple Static Site Generator written in Rust
 
-* [Releases](https://github.com/marttcw/mssg/releases)
-* Development version: v0.0.2
+* [Releases](https://github.com/mtcw99/mssg/releases)
+* Development version: v0.0.3
 * Current version: v0.0.1 - 2019-12-29 - Alpha
 
 ## Description
 A lightweight and fast static site generator that have simple templating functions and optional/extended features
 
-## Dependencies
-* **Currently there is no dependencies at all as of v0.0.1. However the following listed dependencies are planned to happen as the development goes.**
-* There is no mandatory dependencies, however you will be missing out on thumbnail generation, general image resize, and commonmark conversion if making mssg without the optional dependencies.
-### Future/TODO Dependencies (Not actual current optional dependencies)
-* [ImageMagick](https://imagemagick.org/api/resize.php#ThumbnailImage) - MagickCore API - Used for making thumbnail for the gallery and resizing images in general
-* [libcmark](https://github.com/commonmark/cmark) - commonmark - Converts commonmark/markdown files to HTML
+## Instructions
+### Compiling and Installation
+* `cargo install --path .`
+### Uninstallation
+* `cargo uninstall`
 
-## Compiling
-* `make`
-
-## Installation
-* `make install`
-
-## Uninstallation
-* `make uninstall`
-
-## Features
-### Templating
-* Variables types
-  * string
-  * integer
-  * float
-* for loop
-* base of another file
-### Extra
-* Minify
-
-## Template commands
-```
-base: Set following file as the base file of the current file, however the rest of the variables are set before going back to the base file.
-{% base src/dir/foo.html %}
-parse: Parse through the file given
-{% parse src/dir/foo.html %}
-
-setblock: Set a block to be put when called
-{% setblock content %}{% end %}
-putblock: Put the block given
-{% putblock content %}
-
-set: Set a variable
-{% set foo bar %} - String
-{% set foo 1 %} - Integer
-{% set foo 1.1 %} - Float
-{% set foo aaa bbb ccc %} - List of strings
-{% set foo .num 15 .stuff 20 %} - Dictionary (TODO)
-
-Get variable
-{{ foo }}
-{{ foo 0 }}
-
-link: Set a link string derived from the source+destination root path
-{% link /foo.html %} - Produce just the link
-{% link /foo.html Foo %} - Produce a href link tag
-
-loop: For range loop: EX: i start on foo to 5
-{% loop i foo 5 %}
-  {{ i }}
-  {{ list i }}
-{% end %}
-For in loop:
-{% loop item list %}
-  {{ item }}
-{% end %}
-```
-
-### Pre-defined variables
-#### #blog
-Blog for loop:
-
-```
-{% for post in #blog %}
-  {{ post.date }}
-  {{ post.link }}
-  {{ post.name }}
-{% endfor %}
-```
-
-### Configuration file only
-Set your text editor for editing blog files
-```
-copy_ignore base.html
-setdir blog /blog 
-```
+## Usage
+* Refer to `mssg -h`
 
 ## TODO
-* Static blog
-* config
-  * `set list one two 3 four five` (list)
-  * `setdir dirlist /blog/` (root of source directory)
-
-## TODO (Old)
-* Rework
-* Templating - Doing
-  * for loop - Done
-* Hashmap implementation - Done
-* Static blogging feature - Doing
-  * `blog new test` - Create a new blog post - Done
-  * `blog edit 2020-05-05 test` - Edit a blog post - Done
-  * `blog list` - List your posts - Doing
-  * `blog delete 20190921_01` - Delete a blog post - Doing
-  * Templating - blog list - Done
-* Translated page version
-* Gallery feature
-  * Thumbnail generator - Use external program
-* For loop a list of strings - Done
-* For loop a list of dictionary - Done
-* Point to another variable (EX: `{% list fruit $apple $banana $other %}`) - Done? Need further testing
-* Minify CSS + JS
+* Rework to Rust
+* Aim for feature parity close to [ssg](https://www.romanzolotarev.com/ssg.html)
 
 ## Changelogs
+### 2021-03-03: v0.0.3 - Rework 2
+* Changed to Rust
 ### 2020-08-30: v0.0.2 - Rework
 * Templating completely changed
 * Parsing different
