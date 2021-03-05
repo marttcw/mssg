@@ -7,4 +7,5 @@ edition = "2018"
 [dependencies]
 clap = "3.0.0-beta.2"
 pulldown-cmark = "0.8.0"
+walkdir = "2"
 

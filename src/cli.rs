@@ -19,6 +19,14 @@ pub struct Build {
     /// Verbose output
     #[clap(short, long)]
     pub verbose: bool,
+
+    /// The source directory
+    #[clap(short, long, default_value = "src")]
+    pub source_directory: String,
+
+    /// The destination directory
+    #[clap(short, long, default_value = "dst")]
+    pub destination_directory: String,
 }
 
 pub fn parse() -> Opts {
