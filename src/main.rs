@@ -1,5 +1,6 @@
 mod cli;
 mod files;
+mod md;
 
 use std::io::Error;
 
@@ -9,11 +10,9 @@ fn main() -> Result<(), Error> {
             let mut pp: files::PrimaryPaths = files::PrimaryPaths::new(&b.source_directory,
                 &b.destination_directory);
 
-            if pp.paths_check()? {
-                println!("Paths OK");
-            } else {
-                eprintln!("Paths not found");
-            }
+            pp.paths_check()?;
+            println!("Paths found");
+            pp.traverse()?;
         },
     }
     Ok(())
