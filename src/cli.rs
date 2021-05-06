@@ -1,7 +1,7 @@
 use clap::Clap;
 
 #[derive(Clap, Debug)]
-#[clap(version = "0.0.3 Alpha", author = "mtcw <mtcw@disroot.org>")]
+#[clap(version = "0.0.3 Alpha", author = "mtcw")]
 pub struct Opts {
     #[clap(subcommand)]
     pub subcmd: SubCommand,
@@ -9,7 +9,7 @@ pub struct Opts {
 
 #[derive(Clap, Debug)]
 pub enum SubCommand {
-    #[clap(version = "0.0.3 Alpha", author = "mtcw <mtcw@disroot.org>")]
+    #[clap(version = "0.0.3 Alpha", author = "mtcw")]
     Build(Build),
 }
 

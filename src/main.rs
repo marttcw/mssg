@@ -11,8 +11,8 @@ fn main() -> Result<(), Error> {
                 &b.destination_directory);
 
             pp.paths_check()?;
-            println!("Paths found");
             pp.traverse()?;
+            pp.build()?;
         },
     }
     Ok(())
