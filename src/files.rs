@@ -6,9 +6,11 @@ pub struct PrimaryPaths {
     pub base_dir: String,
     pub source: String,
     pub destination: String,
+    pub files_priority: Vec<SrcFileInfo>,
     pub files: Vec<SrcFileInfo>,
 }
 
+#[derive(PartialEq)]
 pub enum FileType {
     HTML,
     HTMLBase,
@@ -56,6 +58,7 @@ impl PrimaryPaths {
             source: src.to_string(),
             destination: dest.to_string(),
             files: vec![],
+            files_priority: vec![],
         }
     }
 
@@ -84,11 +87,18 @@ impl PrimaryPaths {
             let metadata = entry.metadata()?;
             if !metadata.is_dir() {
                 if let Some(ext) = entry.path().extension() {
-                    self.files.push(SrcFileInfo{
+                    let file_type = FileType::from_ext(ext.to_str().unwrap(), entry.file_name().to_str().unwrap());
+                    let dst_path = self.omit_dst(entry.path().to_str().unwrap());
+                    let to_file = if file_type == FileType::HTMLBase {
+                        &mut self.files_priority
+                    } else {
+                        &mut self.files
+                    };
+                    to_file.push(SrcFileInfo{
                         path: String::from(entry.path().to_str().unwrap()),
                         file_name: String::from(entry.file_name().to_str().unwrap()),
-                        file_type: FileType::from_ext(ext.to_str().unwrap(), entry.file_name().to_str().unwrap()), 
-                        dst_path: self.omit_dst(entry.path().to_str().unwrap()),
+                        file_type: file_type, 
+                        dst_path: dst_path,
                     });
                 } else {
                     eprintln!("Cannot read entry extension for: {}",
@@ -103,14 +113,9 @@ impl PrimaryPaths {
     pub fn build(&mut self) -> Result<()> {
         let mut file_base_header = String::from("");
         let mut file_base_footer = String::from("");
-        for file in &self.files {
-            let mut file_content = String::from("");
-            print!("{} ({} -> {}) ", file.file_name, file.path, file.dst_path);
+        for file in &self.files_priority {
+            print!("{} ({}) ", file.file_name, file.path);
             match file.file_type {
-                FileType::HTML => {
-                    file_content = read_to_string(&file.path)?;
-                    println!("HTML");
-                },
                 FileType::HTMLBase => {
                     let file = File::open(&file.path)?;
                     let reader = BufReader::new(file);
@@ -132,16 +137,29 @@ impl PrimaryPaths {
                             Err(_) => (),
                         }
                     }
-
-                    //println!("{}", file_base_header);
-                    //println!("{}", file_base_footer);
                     println!("HTMLBase");
+                },
+                _ => (),
+            }
+        }
+
+        for file in &self.files {
+            let mut file_content = String::from("");
+            print!("{} ({} -> {}) ", file.file_name, file.path, file.dst_path);
+            match file.file_type {
+                FileType::HTML => {
+                    println!("HTML");
+                    file_content += &file_base_header;
+                    file_content += &read_to_string(&file.path)?;
+                    file_content += &file_base_footer;
                 },
                 FileType::MarkDown => {
                     println!("MarkDown");
                     match md::convert_to_html(&file.path) {
                         Ok(html_output) => {
-                            file_content = html_output;
+                            file_content += &file_base_header;
+                            file_content += &html_output;
+                            file_content += &file_base_footer;
                         }
                         Err(why) => {
                             eprintln!("Cannot convert markdown to html: {} | File: {}",
@@ -149,9 +167,13 @@ impl PrimaryPaths {
                         }
                     }
                 },
+                FileType::HTMLBase => (),
                 FileType::Other(_) => (),
             }
-            //println!("{}", file_content);
+
+            //if file_content != "" {
+            //    println!("{}", file_content);
+            //}
         }
 
         Ok(())
