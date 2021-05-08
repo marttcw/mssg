@@ -1,7 +1,8 @@
-use clap::Clap;
+use clap::{AppSettings, Clap};
 
 #[derive(Clap, Debug)]
 #[clap(version = "0.0.3 Alpha", author = "mtcw")]
+#[clap(setting = AppSettings::ColoredHelp)]
 pub struct Opts {
     #[clap(subcommand)]
     pub subcmd: SubCommand,
@@ -10,9 +11,12 @@ pub struct Opts {
 #[derive(Clap, Debug)]
 pub enum SubCommand {
     #[clap(version = "0.0.3 Alpha", author = "mtcw")]
+    #[clap(setting = AppSettings::ColoredHelp)]
     Build(Build),
 
     #[clap(version = "0.0.3 Alpha", author = "mtcw")]
+    #[clap(setting = AppSettings::ArgRequiredElseHelp)]
+    #[clap(setting = AppSettings::ColoredHelp)]
     Blog(Blog),
 }
 
@@ -36,8 +40,8 @@ pub struct Build {
 #[derive(Clap, Debug)]
 pub struct Blog {
     /// The source directory
-    #[clap(short, long, default_value = "src/blog")]
-    pub source_directory: String,
+    #[clap(short)]
+    pub src_dir: Option<String>,
 
     /// List blogs
     #[clap(short, long)]

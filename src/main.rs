@@ -3,9 +3,9 @@ mod cli;
 mod files;
 mod md;
 
-use std::io::Error;
+use std::io::Result;
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<()> {
     match cli::parse().subcmd {
         cli::SubCommand::Build(b) => {
             let mut pp: files::PrimaryPaths =
@@ -15,14 +15,19 @@ fn main() -> Result<(), Error> {
             pp.traverse()?;
             pp.build()?;
         }
-        cli::SubCommand::Blog(b) => {
+        cli::SubCommand::Blog(mut b) => {
+            if b.src_dir == None {
+                b.src_dir = Some(String::from("src/blog"));
+            }
+
             if b.list {
-                let entries = blog::get_list(&b.source_directory)?;
+                let entries = blog::get_list(&b.src_dir.unwrap())?;
                 for entry in entries {
                     println!("{}", entry.to_list_entry());
                 }
             } else if b.new {
-                blog::new(&b.source_directory)?;
+                blog::new(&b.src_dir.unwrap())?;
+            } else {
             }
         }
     }

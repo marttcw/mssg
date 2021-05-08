@@ -167,6 +167,8 @@ impl PrimaryPaths {
             }
         }
 
+        let blog_entries = blog::get_list("src/blog")?;
+
         for file in &self.files {
             let mut file_content = String::from("");
             println!("{} -> {}", file.path, file.dst_path);
@@ -184,8 +186,7 @@ impl PrimaryPaths {
                         match line {
                             Ok(line) => {
                                 if line.starts_with("<!--@LIST@-->") {
-                                    let entries = blog::get_list("src/blog")?;
-                                    for entry in entries {
+                                    for entry in &blog_entries {
                                         post_proc_filestr += &entry.to_md_li("src");
                                     }
                                 } else {
