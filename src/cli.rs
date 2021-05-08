@@ -51,4 +51,3 @@ pub struct Blog {
 pub fn parse() -> Opts {
     return Opts::parse();
 }
-

@@ -1,6 +1,11 @@
-use std::{io::{Result, Error, ErrorKind, BufReader, prelude::*}, env, fs::{File, read_to_string, create_dir_all}, path::{Path, PathBuf}};
+use crate::{blog, md};
+use std::{
+    env,
+    fs::{create_dir_all, read_to_string, File},
+    io::{prelude::*, BufReader, Error, ErrorKind, Result},
+    path::{Path, PathBuf},
+};
 use walkdir::WalkDir;
-use crate::md;
 
 pub struct PrimaryPaths {
     pub base_dir: String,
@@ -27,7 +32,7 @@ impl FileType {
                 } else {
                     FileType::HTML
                 }
-            },
+            }
             "md" => FileType::MarkDown,
             _ => FileType::Other(String::from(ext)),
         }
@@ -71,7 +76,10 @@ impl PrimaryPaths {
             Ok(())
         } else {
             eprintln!("Source: {} found status: {}", self.source, ok_source);
-            eprintln!("Destination: {} found status: {}", self.destination, ok_destination);
+            eprintln!(
+                "Destination: {} found status: {}",
+                self.destination, ok_destination
+            );
             Err(Error::new(ErrorKind::NotFound, "Paths not found"))
         }
     }
@@ -84,7 +92,7 @@ impl PrimaryPaths {
         match *file_type {
             FileType::MarkDown => {
                 new_dst.set_extension("html");
-            },
+            }
             _ => (),
         }
         new_dst
@@ -96,23 +104,30 @@ impl PrimaryPaths {
             let metadata = entry.metadata()?;
             if !metadata.is_dir() {
                 if let Some(ext) = entry.path().extension() {
-                    let file_type = FileType::from_ext(ext.to_str().unwrap(), entry.file_name().to_str().unwrap());
+                    let file_type = FileType::from_ext(
+                        ext.to_str().unwrap(),
+                        entry.file_name().to_str().unwrap(),
+                    );
                     let dst_path = self.omit_dst(entry.path().to_str().unwrap(), &file_type);
                     let to_file = if file_type == FileType::HTMLBase {
                         &mut self.files_priority
                     } else {
                         &mut self.files
                     };
-                    to_file.push(SrcFileInfo{
+                    to_file.push(SrcFileInfo {
                         path: String::from(entry.path().to_str().unwrap()),
                         file_name: String::from(entry.file_name().to_str().unwrap()),
-                        file_type: file_type, 
+                        file_type: file_type,
                         dst_path: String::from(dst_path.to_str().unwrap()),
-                        dst_file_name: String::from(dst_path.file_name().unwrap().to_str().unwrap()),
+                        dst_file_name: String::from(
+                            dst_path.file_name().unwrap().to_str().unwrap(),
+                        ),
                     });
                 } else {
-                    eprintln!("Cannot read entry extension for: {}",
-                        entry.path().display());
+                    eprintln!(
+                        "Cannot read entry extension for: {}",
+                        entry.path().display()
+                    );
                 }
             }
         }
@@ -143,11 +158,11 @@ impl PrimaryPaths {
                                     file_base_footer += &line;
                                     file_base_footer.push('\n');
                                 }
-                            },
+                            }
                             Err(_) => (),
                         }
                     }
-                },
+                }
                 _ => (),
             }
         }
@@ -160,20 +175,42 @@ impl PrimaryPaths {
                     file_content += &file_base_header;
                     file_content += &read_to_string(&file.path)?;
                     file_content += &file_base_footer;
-                },
+                }
                 FileType::MarkDown => {
-                    match md::convert_to_html(&file.path) {
+                    let mut post_proc_filestr = String::new();
+                    let fo = File::open(&file.path)?;
+                    let reader = BufReader::new(fo);
+                    for line in reader.lines() {
+                        match line {
+                            Ok(line) => {
+                                if line.starts_with("<!--@LIST@-->") {
+                                    let entries = blog::get_list("src/blog")?;
+                                    for entry in entries {
+                                        post_proc_filestr += &entry.to_md_li("src");
+                                    }
+                                } else {
+                                    post_proc_filestr += &line;
+                                }
+                                post_proc_filestr.push('\n');
+                            }
+                            Err(_) => (),
+                        }
+                    }
+
+                    match md::convert_str_to_html(&post_proc_filestr) {
                         Ok(html_output) => {
                             file_content += &file_base_header;
                             file_content += &html_output;
                             file_content += &file_base_footer;
                         }
                         Err(why) => {
-                            eprintln!("Cannot convert markdown to html: {} | File: {}",
-                                why, file.path);
+                            eprintln!(
+                                "Cannot convert markdown to html: {} | File: {}",
+                                why, file.path
+                            );
                         }
                     }
-                },
+                }
                 FileType::HTMLBase => (),
                 FileType::Other(_) => (),
             }
@@ -193,10 +230,10 @@ impl PrimaryPaths {
                 match File::create(&file.dst_path) {
                     Ok(mut file) => {
                         file.write_all(&file_content.into_bytes())?;
-                    },
+                    }
                     Err(why) => {
                         println!("ERROR: {}: {}", &file.dst_path, why);
-                    },
+                    }
                 }
             }
         }
@@ -204,4 +241,3 @@ impl PrimaryPaths {
         Ok(())
     }
 }
-

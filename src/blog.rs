@@ -1,7 +1,12 @@
-use std::{io::{Result, Write, stdin, stdout, Error, ErrorKind, BufReader, BufRead}, fs::{create_dir_all, File}, path::Path};
 use chrono::prelude::*;
+use std::{
+    fs::{create_dir_all, File},
+    io::{stdin, stdout, BufRead, BufReader, Error, ErrorKind, Result, Write},
+    path::Path,
+};
 use walkdir::WalkDir;
 
+// TODO: Differ between markdown and HTML file
 pub struct Entry {
     title: String,
     date: Date<Local>,
@@ -11,26 +16,41 @@ pub struct Entry {
 impl Entry {
     pub fn new(title: &str, date_str: &str, path: &str) -> Result<Entry> {
         match &format!("{}T00:00:00Z", date_str).parse::<DateTime<Local>>() {
-            Ok(dt) => {
-                Ok(Entry {
-                    title: String::from(title),
-                    date: Local.ymd(dt.year(), dt.month(), dt.day()),
-                    path: String::from(path),
-                })
-            },
+            Ok(dt) => Ok(Entry {
+                title: String::from(title),
+                date: Local.ymd(dt.year(), dt.month(), dt.day()),
+                path: String::from(path),
+            }),
             Err(why) => Err(Error::new(ErrorKind::Other, format!("{}", why))),
         }
     }
 
     pub fn to_list_entry(&self) -> String {
-        format!("{} - {} | {}", self.date.format("%Y-%m-%d"), self.title, self.path)
+        format!(
+            "{} - {} | {}",
+            self.date.format("%Y-%m-%d"),
+            self.title,
+            self.path
+        )
     }
 
-    pub fn to_html_li(&self) -> String {
-        format!("<li>{} - <a href=\"{}\">{}</a></li>",
+    #[allow(dead_code)]
+    pub fn to_html_li(&self, omit: &str) -> String {
+        format!(
+            "<li>{} - <a href=\"{}\">{}</a></li>\n",
             self.date.format("%Y-%m-%d"),
-            self.path,
-            self.title)
+            &self.path[omit.len()..],
+            self.title
+        )
+    }
+
+    pub fn to_md_li(&self, omit: &str) -> String {
+        format!(
+            "* {} - [{}]({})\n",
+            self.date.format("%Y-%m-%d"),
+            self.title,
+            &self.path[omit.len()..(self.path.len() - "index.md".len())]
+        )
     }
 }
 
@@ -58,7 +78,7 @@ pub fn get_list(path: &str) -> Result<Vec<Entry>> {
                         let title = &title[2..];
 
                         entries.push(Entry::new(&title, &date, &entry.path().to_str().unwrap())?);
-                    },
+                    }
                     _ => (),
                 }
             }
@@ -111,11 +131,10 @@ pub fn new(path: &str) -> Result<()> {
             file.write(&format!("# {}\n{}\n\n", &name, &date_fmt).into_bytes())?;
 
             println!("'{}' - {} Created", &name, &new_dir);
-        },
+        }
         Err(why) => {
             eprintln!("ERROR: {}", why);
-        },
+        }
     }
     Ok(())
 }
-
