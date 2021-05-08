@@ -1,4 +1,4 @@
-use std::{io::{Result, Error, ErrorKind, BufReader, prelude::*}, env, fs::{File, read_to_string}, path::Path};
+use std::{io::{Result, Error, ErrorKind, BufReader, prelude::*}, env, fs::{File, read_to_string, create_dir_all}, path::{Path, PathBuf}};
 use walkdir::WalkDir;
 use crate::md;
 
@@ -49,6 +49,7 @@ pub struct SrcFileInfo {
     pub file_name: String,
     pub file_type: FileType,
     pub dst_path: String,
+    pub dst_file_name: String,
 }
 
 impl PrimaryPaths {
@@ -75,9 +76,17 @@ impl PrimaryPaths {
         }
     }
 
-    fn omit_dst(&self, path: &str) -> String {
-        let mut new_dst = self.destination.clone();
-        new_dst += &path[self.source.len()..];
+    fn omit_dst(&self, path: &str, file_type: &FileType) -> PathBuf {
+        let mut new_dst_str = self.destination.clone();
+        new_dst_str += &path[self.source.len()..];
+        let mut new_dst = PathBuf::new();
+        new_dst.push(new_dst_str);
+        match *file_type {
+            FileType::MarkDown => {
+                new_dst.set_extension("html");
+            },
+            _ => (),
+        }
         new_dst
     }
 
@@ -88,7 +97,7 @@ impl PrimaryPaths {
             if !metadata.is_dir() {
                 if let Some(ext) = entry.path().extension() {
                     let file_type = FileType::from_ext(ext.to_str().unwrap(), entry.file_name().to_str().unwrap());
-                    let dst_path = self.omit_dst(entry.path().to_str().unwrap());
+                    let dst_path = self.omit_dst(entry.path().to_str().unwrap(), &file_type);
                     let to_file = if file_type == FileType::HTMLBase {
                         &mut self.files_priority
                     } else {
@@ -98,7 +107,8 @@ impl PrimaryPaths {
                         path: String::from(entry.path().to_str().unwrap()),
                         file_name: String::from(entry.file_name().to_str().unwrap()),
                         file_type: file_type, 
-                        dst_path: dst_path,
+                        dst_path: String::from(dst_path.to_str().unwrap()),
+                        dst_file_name: String::from(dst_path.file_name().unwrap().to_str().unwrap()),
                     });
                 } else {
                     eprintln!("Cannot read entry extension for: {}",
@@ -114,7 +124,7 @@ impl PrimaryPaths {
         let mut file_base_header = String::from("");
         let mut file_base_footer = String::from("");
         for file in &self.files_priority {
-            print!("{} ({}) ", file.file_name, file.path);
+            println!("{}", file.path);
             match file.file_type {
                 FileType::HTMLBase => {
                     let file = File::open(&file.path)?;
@@ -137,7 +147,6 @@ impl PrimaryPaths {
                             Err(_) => (),
                         }
                     }
-                    println!("HTMLBase");
                 },
                 _ => (),
             }
@@ -145,16 +154,14 @@ impl PrimaryPaths {
 
         for file in &self.files {
             let mut file_content = String::from("");
-            print!("{} ({} -> {}) ", file.file_name, file.path, file.dst_path);
+            println!("{} -> {}", file.path, file.dst_path);
             match file.file_type {
                 FileType::HTML => {
-                    println!("HTML");
                     file_content += &file_base_header;
                     file_content += &read_to_string(&file.path)?;
                     file_content += &file_base_footer;
                 },
                 FileType::MarkDown => {
-                    println!("MarkDown");
                     match md::convert_to_html(&file.path) {
                         Ok(html_output) => {
                             file_content += &file_base_header;
@@ -171,9 +178,27 @@ impl PrimaryPaths {
                 FileType::Other(_) => (),
             }
 
-            //if file_content != "" {
-            //    println!("{}", file_content);
-            //}
+            if file_content != "" {
+                {
+                    // Create destination directory path
+                    let mut dst_dir_paths = String::from(&file.dst_path);
+                    for _ in 0..file.dst_file_name.len() {
+                        dst_dir_paths.pop();
+                    }
+                    //println!("NEWPATH: {}", &dst_dir_paths);
+                    create_dir_all(&dst_dir_paths)?;
+                }
+
+                // Create file and write to it
+                match File::create(&file.dst_path) {
+                    Ok(mut file) => {
+                        file.write_all(&file_content.into_bytes())?;
+                    },
+                    Err(why) => {
+                        println!("ERROR: {}: {}", &file.dst_path, why);
+                    },
+                }
+            }
         }
 
         Ok(())
